@@ -1,28 +1,31 @@
-public class Simplex
+namespace DTSimulation
 {
-    public Simplex[] neighbors;
-    public int[] vertex;
-    public int sum;
-    public int label;
-    public bool flag;
-
-    public Simplex(int[] a, int N)
+    public class Simplex
     {
-        int i, count;
-        int DPLUS = N + 1;
+        public Simplex[] neighbors;
+        public int[] vertices;
+        public int sum;
+        public int label;
+        public bool flag;
 
-        vertex = new int[DPLUS];
-        neighbors = new Simplex[DPLUS];
-        count = 0;
-
-        for (i = 0; i < DPLUS; i++)
+        public Simplex(int[] a, int N)
         {
-            vertex[i] = a[i];
-            neighbors[i] = null;
-            count += a[i];
-        }
+            int i, count;
+            int DPLUS = N + 1;
 
-        sum = count;
-        flag = false;
+            vertices = new int[DPLUS];
+            neighbors = new Simplex[DPLUS];
+            count = 0;
+
+            for (i = 0; i < DPLUS; i++)
+            {
+                vertices[i] = a[i];
+                neighbors[i] = null;
+                count += a[i];
+            }
+
+            sum = count;
+            flag = false;
+        }
     }
 }
