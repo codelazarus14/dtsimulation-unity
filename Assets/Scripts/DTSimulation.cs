@@ -29,7 +29,14 @@ namespace DTSimulation
         private const int MAXVOL = VOL + 30;
         private const int MINVOL = DPLUSPLUS;
         private const int NUMROW = VOL / 2;
-        private const int NONZEROS = NUMROW * VOL; // over 8 billion???
+        private const int NONZEROS = NUMROW * VOL;
+
+        private const int THERMALISE = 500;
+        private const int SWEEPS = 20000;
+        private const int TUNE_COUPLING = 100;
+        private const int SEED = 1;
+        private const int GAP = 10;
+        private const int DV = 2;
 
         /* simple global pointers and counters */
 
@@ -87,8 +94,6 @@ namespace DTSimulation
 
         private void Thermalize()
         {
-            int therm;
-
             simplex_point = new Simplex[BIGVOL];
             ReadFile();
 
@@ -118,6 +123,12 @@ namespace DTSimulation
             //}
 
             Tidy();
+
+            grow = false;
+
+            /* thermalise and output info on run */
+
+            Header();
 
             //...
         }
@@ -224,6 +235,30 @@ namespace DTSimulation
             }
         }
 
+
+        /* opens files, initialises variables */
+        /* prints out the run parameters */
+        private void Header()
+        {
+            max_point = 0;
+
+            string header = "----------HEADER----------\n";
+
+            header += "Dimension: " + D + "\n";
+            header += "Volume: " + VOL + "\n";
+            header += "Marked node coupling: " + ALPHA + "\n";
+            header += "Simplex coupling: " + kappa_d + "\n";
+            header += "Bulk coupling: " + BETA + "\n";
+            header += "Number of sweeps: " + SWEEPS + "\n";
+            header += "Thermalization time: " + THERMALISE + "\n";
+            header += "Number of sweeps between KD tuning: " + TUNE_COUPLING + "\n";
+            header += "Gap between measurements: " + GAP + "\n";
+            header += "Volume fluctuation parameter: " + DV + "\n";
+            header += "Random number seed: " + SEED + "\n";
+
+            Debug.Log(header);
+        }
+
         /* routine pushes deleted vertex label onto stack - DT.java */
         private void Push(int i)
         {
@@ -261,6 +296,12 @@ namespace DTSimulation
                 Debug.Log("oops - pointer number is not equal to simplex_number in tidy()");
 
             return;
+        }
+
+        /* driver for triangulation updates */
+        private void TrialChange()
+        {
+            int subsimplex = D;
         }
     }
 }
