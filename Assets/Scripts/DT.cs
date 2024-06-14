@@ -5,42 +5,42 @@ using Random = UnityEngine.Random;
 
 namespace DTSimulation
 {
-    public class DT : MonoBehaviour
+    public class DT
     {
         // all comments using /**/ are from DT.java
 
         // TODO: fix style/naming conventions
         // TODO: fix messy/redundant loops and reduce work
-        // TODO: remove unused, add cached values, make LOGICS and ints = 0 or 1 become bools (usually "int done")
+        // TODO: remove unused, add cached values, make LOGICS and ints = 0 or 1 become bools (usually "int done"), remove int[1]'s
 
         /* some global constants for run */
 
         private float kappa_0 = 0f, kappa_d = 0f, kappa_0b = 0f;
-        private const float BETA = 3f;
-        private const float ALPHA = 0.25f;
-        private const int DISKVOL = 472;
-        private const int DISKMINVOL = DISKVOL - 30;
-        private const int DISKMAXVOL = DISKVOL + 30;
-        private const float FRAC = 0.75f;
-        private const float TC = 7f;
-        private const int MARKEDQ = 282; //FRAC*(DISKVOL+2)/(2.0-FRAC)
+        public const float BETA = 3f;
+        public const float ALPHA = 0.25f;
+        public const int DISKVOL = 472;
+        public const int DISKMINVOL = DISKVOL - 30;
+        public const int DISKMAXVOL = DISKVOL + 30;
+        public const float FRAC = 0.75f;
+        public const float TC = 7f;
+        public const int MARKEDQ = 282; //FRAC*(DISKVOL+2)/(2.0-FRAC)
 
-        private const int D = 2;
-        private const int DPLUS = D + 1;
-        private const int DPLUSPLUS = D + 2;
-        private const int VOL = DISKVOL + MARKEDQ;
-        private const int BIGVOL = 4 * VOL;
-        private const int MAXVOL = VOL + 30;
-        private const int MINVOL = DPLUSPLUS;
-        private const int NUMROW = VOL / 2;
-        private const int NONZEROS = NUMROW * VOL;
+        public const int D = 2;
+        public const int DPLUS = D + 1;
+        public const int DPLUSPLUS = D + 2;
+        public const int VOL = DISKVOL + MARKEDQ;
+        public const int BIGVOL = 4 * VOL;
+        public const int MAXVOL = VOL + 30;
+        public const int MINVOL = DPLUSPLUS;
+        public const int NUMROW = VOL / 2;
+        public const int NONZEROS = NUMROW * VOL;
 
-        private const int THERMALISE = 1;
-        private const int SWEEPS = 100;
-        private const int TUNE_COUPLING = 100;
-        private const int SEED = 1;
-        private const int GAP = 10;
-        private const int DV = 2;
+        public const int THERMALISE = 1;
+        public const int SWEEPS = 100;
+        public const int TUNE_COUPLING = 100;
+        public const int SEED = 1;
+        public const int GAP = 10;
+        public const int DV = 2;
 
         /* simple global pointers and counters */
 
@@ -86,12 +86,12 @@ namespace DTSimulation
         //
         // my fields/deviations from above
         //
+        private string configText;
 
-        [SerializeField]
-        private TextAsset config;
-
-
-        private void Start() => Main();
+        public DT(string config)
+        {
+            configText = config;
+        }
 
         /* driver for simplex Monte Carlo */
         private void Main()
@@ -125,6 +125,7 @@ namespace DTSimulation
                 int[] num = new int[1];
                 int[] nn = new int[VOL];
 
+                // TODO: i'm pretty sure this search for node 0 is copied like 3 times, along w the code below it
                 for (int i = 0; i < simplex_number; i++)
                 {
                     if (done) break;
@@ -163,7 +164,7 @@ namespace DTSimulation
             PrintOut();
         }
 
-        private void Thermalize()
+        public void Thermalize()
         {
             simplex_point = new Simplex[BIGVOL];
             ReadFile();
@@ -653,7 +654,7 @@ namespace DTSimulation
             // also TODO: maybe create a textmesh to store these outputs like an in-game console cuz the debug one is not great
 
             // load config
-            string[] configLines = config.text.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
+            string[] configLines = configText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
             // using a string stack to imitate use of the Scanner in the java version
             Stack<string> configStack = new Stack<string>();
             for (int i = configLines.Length - 1; i >= 0; i--)
@@ -816,6 +817,210 @@ namespace DTSimulation
             vnum[0] = num[0];
 
             return;
+        }
+
+        public void Laplacian()
+        {
+            bool done;
+            int v, k;
+            Simplex p = null;
+            int[] num_in_row = new int[VOL];
+            int[] col = new int[NONZEROS];
+            int[] start = new int[VOL];
+            bool[] not_seen = new bool[VOL];
+            int[] q = new int[VOL];
+            int[] nn = new int[VOL];
+            float[] lap = new float[NONZEROS];
+            bool[] on_boundary = new bool[VOL];
+            int[] num = new int[1];
+
+            // find pointer to node 0
+
+            done = false;
+            for (int i = 0; i < simplex_number; i++)
+            {
+                if (done) break;
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    if (simplex_point[i].vertices[j] == 0)
+                    {
+                        p = simplex_point[i];
+                        done = true;
+                        break;
+                    }
+                }
+            }
+
+            v = 0;
+
+            GetNN(p, v, nn, num);
+            boundary_length = num[0];
+            Debug.Log($"Boundary length {boundary_length}");
+            Debug.Log($"Total bulk node {node_number - boundary_length - 1}");
+
+            for (int i = 0; i < boundary_length; i++)
+                boundary[i] = nn[i];
+
+            for (int i = 0; i < VOL; i++)
+                not_seen[i] = true;
+
+            not_seen[0] = false;
+
+            for (k = 0; k < VOL; k++)
+            {
+                start[k] = k * NUMROW;
+                num_in_row[k] = 0;
+                q[k] = 0;
+            }
+            for (k = 0; k < NONZEROS; k++)
+                col[k] = -1;
+
+            int maxv = 0, minv = 100000;
+            int vcount = 0;
+            for (int i = 0; i < simplex_number; i++)
+            {
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    v = simplex_point[i].vertices[j];
+
+                    if (v > maxv) maxv = v;
+                    if (v < minv) minv = v;
+
+                    // leave out marked node
+
+                    if (not_seen[v])
+                    {
+                        vcount++;
+                        // new vertex
+
+                        GetNN(simplex_point[i], v, nn, num);
+                        for (k = 0; k < num[0]; k++)
+                        {
+                            if (nn[k] != 0)
+                            {
+                                lap[start[v] + num_in_row[v]] = -1f;
+                                col[start[v] + num_in_row[v]] = nn[k];
+                                num_in_row[v]++;
+                            }
+                        }
+                        // diagonal piece
+                        lap[start[v] + num_in_row[v]] = num_in_row[v];
+                        col[start[v] + num_in_row[v]] = v;
+                        num_in_row[v]++;
+                        if (num_in_row[v] > NUMROW)
+                            Debug.LogError($"oops - dimension sparse row too large at v={v}");
+
+                        not_seen[v] = false;
+                    }
+                }
+            }
+
+            if (maxv != node_number - 1 || minv != 0)
+                Debug.LogError($"relabeled triangulation incorrect with minv={minv} and maxv={maxv}");
+            int c = 0;
+            for (int i = 1; i <= maxv; i++)
+            {
+                if (num_in_row[i] == 0) Debug.LogError($"missing vertex {i}");
+                if (i > node_number - 1) Debug.LogError($"super minimal vertex label {i}");
+                if (num_in_row[i] != 0)
+                    c += num_in_row[i] - 1;
+            }
+
+            // clean up sparse  data structures
+            k = 0;
+            nstart[1] = 0;
+            nstart[0] = 0;
+            for (int i = 0; i < node_number; i++)
+            {
+                for (int j = start[i]; j < start[i + 1]; j++)
+                {
+                    if (col[j] != -1)
+                    {
+                        ncol[k] = col[j];
+                        nlap[k] = lap[j];
+                        k++;
+                    }
+                }
+                nstart[i + 1] = nstart[i] + num_in_row[i];
+            }
+        }
+
+        private void DeleteStack()
+        {
+            Node tmp = stack_head;
+            Node[] dum = new Node[VOL];
+            int num = 0;
+
+            while (tmp != null)
+            {
+                dum[num] = tmp;
+                tmp = tmp.next;
+                num++;
+            }
+
+            stack_head = null;
+            stack_count = 0;
+        }
+
+        public void RelabelNodes()
+        {
+            const int VERYBIG = 100000;
+            int new2, old;
+
+            int[] num = new int[1];
+
+            bool[] not_seen = new bool[VOL];
+            Simplex[] list = new Simplex[VOL];
+            int[] dum = new int[DPLUS];
+
+            for (int i = 0; i < VOL; i++)
+                not_seen[i] = true;
+
+            new2 = VERYBIG + 1;
+
+            for (int i = 0; i < simplex_number; i++)
+            {
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    old = simplex_point[i].vertices[j];
+
+                    if (old == 0 || old > VERYBIG) continue;
+                    if (not_seen[old])
+                    {
+                        dum[0] = old;
+                        int dummy = 1;
+                        FindSimplices(simplex_point[i], dum, dummy, list, num);
+                        for (int k = 0; k < num[0]; k++)
+                        {
+                            for (int l = 0; l < DPLUS; l++)
+                            {
+                                if (list[k].vertices[l] == old)
+                                    list[k].vertices[l] = new2;
+                            }
+                        }
+                        not_seen[old] = false;
+                        new2++;
+                    }
+                }
+            }
+
+            // reset labels
+            int a, add;
+            for (int i = 0; i < simplex_number; i++)
+            {
+                add = 0;
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    a = simplex_point[i].vertices[j];
+                    a = a % VERYBIG;
+                    simplex_point[i].vertices[j] = a;
+                    add += a;
+                }
+                simplex_point[i].sum = add;
+            }
+
+            // delete old node stack ...
+            DeleteStack();
         }
 
         /* opens files, initialises variables */
@@ -1210,7 +1415,7 @@ namespace DTSimulation
         }
 
         /* every sweep clean up pointer array */
-        private void Tidy()
+        public void Tidy()
         {
             Simplex[] temp = new Simplex[BIGVOL];
             int add = 0;
@@ -1242,7 +1447,7 @@ namespace DTSimulation
         }
 
         /* driver for triangulation updates */
-        private void TrialChange()
+        public void TrialChange()
         {
             int subsimplex = D;
 
