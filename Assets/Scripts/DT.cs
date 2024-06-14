@@ -5,7 +5,7 @@ using Random = UnityEngine.Random;
 
 namespace DTSimulation
 {
-    public class DTSimulation : MonoBehaviour
+    public class DT : MonoBehaviour
     {
         // all comments using /**/ are from DT.java
 
@@ -36,7 +36,7 @@ namespace DTSimulation
         private const int NONZEROS = NUMROW * VOL;
 
         private const int THERMALISE = 1;
-        private const int SWEEPS = 20000;
+        private const int SWEEPS = 100;
         private const int TUNE_COUPLING = 100;
         private const int SEED = 1;
         private const int GAP = 10;
@@ -72,7 +72,7 @@ namespace DTSimulation
         /* simple observables -- number of nodes, simplices and size */
         /* and variable versions of couplings */
 
-        public float real_simplex = 0f, real_node = 0f;
+        private float real_simplex = 0f, real_node = 0f;
 
         /* routines checks manifold constraint */
         /* this entails examining neighbour simplices for an occurrence */
@@ -93,6 +93,7 @@ namespace DTSimulation
 
         private void Start() => Main();
 
+        /* driver for simplex Monte Carlo */
         private void Main()
         {
             // abstract graph of points
@@ -105,14 +106,61 @@ namespace DTSimulation
             // pick moves at random, link flips or moving vertices
             // generally move towards lower energy w some fluctuations towards higher (depending on temperature)
 
-            int iter, sweep;
-
+            // TODO: make thermalize a coroutine and set value back up to 500, sweeps to 20000
             Thermalize();
             /* sweep lattice outputting measurements every so often */
 
-            //...
-            Debug.Log("finished thermalize");
-            // TODO: make thermalize a coroutine and set value back up to 500
+            Debug.Log("Starting measurements");
+            for (int sweep = 1; sweep < SWEEPS; sweep++)
+            {
+                Debug.Log($"sweep: {sweep}");
+                for (int iter = 0; iter < VOL; iter++)
+                    TrialChange();
+                Tidy();
+
+                bool done = false;
+                int v;
+                Debug.Log($"Simplex number: {simplex_number}");
+                Simplex p = null;
+                int[] num = new int[1];
+                int[] nn = new int[VOL];
+
+                for (int i = 0; i < simplex_number; i++)
+                {
+                    if (done) break;
+                    for (int j = 0; j < DPLUS; j++)
+                    {
+                        if (simplex_point[i].vertices[j] == 0)
+                        {
+                            p = simplex_point[i];
+                            done = true;
+                            break;
+                        }
+                    }
+                }
+                v = 0;
+
+                GetNN(p, v, nn, num);
+
+                boundary_length = num[0];
+
+                num_monitor++;
+                vol_monitor += simplex_number;
+                b_monitor += boundary_length;
+
+                if (sweep % 100 == 0)
+                {
+                    ShiftCoupling();
+                    Debug.Log($"Boundaryyy length: {boundary_length}");
+                    Debug.Log($"Total bulkyyy node: {node_number - boundary_length - 1}");
+                }
+
+                if (sweep % GAP == 0)
+                    Measure();
+            }
+
+            /* finally dump final configuration and print some results */
+            PrintOut();
         }
 
         private void Thermalize()
@@ -161,9 +209,7 @@ namespace DTSimulation
             for (int therm = 1; therm < THERMALISE; therm++)
             {
                 for (int iter = 0; iter < VOL; iter++)
-                {
                     TrialChange();
-                }
                 Tidy();
 
                 // find pointer to node 0
@@ -861,6 +907,16 @@ namespace DTSimulation
             return;
         }
 
+        private void Measure()
+        {
+            real_simplex += simplex_number;
+            real_node += node_number;
+
+            Tidy();
+
+            number_measure++;
+        }
+
         private float DS(int q, int deltaq, float qmean)
         {
             // computes change in local action. Assumes (q-qmean)^2 form
@@ -1007,6 +1063,41 @@ namespace DTSimulation
             stack_count--;
 
             return;
+        }
+
+        /* writes some results to output stream */
+        private void PrintOut()
+        {
+            float dummy = 0f;
+            string results = "Results:\n";
+
+            real_simplex = real_simplex / number_measure;
+            real_node = real_node / number_measure;
+
+            for (int i = 0; i < DPLUS; i++)
+                dummy += legal_subsimplex[i];
+
+            manifold_check /= dummy;
+            manifold_check *= VOL;
+
+            float tmp = (real_simplex - VOL) * 2f / (DV * DV);
+            results += $"Average number of simplices: {real_simplex}\n";
+            results += $"Average number of nodes: {real_node}\n";
+            results += $"Average maximum pointer number: {max_point}\n";
+            results += $"Average number of simplices in manifold check {manifold_check}\n";
+            results += $"Final kappa_d {kappa_d + tmp}\n";
+
+            results += "Subsimplex Moves\n";
+            for (int i = 0; i < DPLUS; i++)
+            {
+                results += $"{i} subsimplices : \n";
+                results += $"Number tried {try_subsimplex[i]}\n";
+                results += $"Number that are legal {legal_subsimplex[i]}\n";
+                results += $"Number that pass manifold test {manifold_subsimplex[i]}\n";
+                results += $"Number that pass Metropolis test {go_subsimplex[i]}\n";
+            }
+
+            Debug.Log(results);
         }
 
         /* routine pushes deleted vertex label onto stack - DT.java */
