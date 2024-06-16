@@ -44,16 +44,15 @@ namespace DTSimulation
 
         /* simple global pointers and counters */
 
+        public int boundary_length;
+        public int node_number = 0;
+        public int[] boundary;
+        public int[] nstart, ncol;
+        public float[] nlap;
+
         private Node stack_head = null;
         private int simplex_number = 0;
         private int pointer_number = 0;
-        private int boundary_length;
-        private int node_number = 0;
-
-        private int[] boundary;
-
-        private int[] nstart, ncol;
-        private float[] nlap;
 
         /* data structures */
 
