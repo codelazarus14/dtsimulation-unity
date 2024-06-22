@@ -272,10 +272,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0bcff8d9b2943746aa895071f1e450a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isRunning: 1
   config: {fileID: 4900000, guid: 2318658292709e94ab4cc93a30055b12, type: 3}
-  speed: 200
+  timeStep: 100
+  beta: 30
   scale: 5
+  isRunning: 0
 --- !u!1 &732546123
 GameObject:
   m_ObjectHideFlags: 0

@@ -16,7 +16,8 @@ namespace DTSimulation
         /* some global constants for run */
 
         private float kappa_0 = 0f, kappa_d = 0f, kappa_0b = 0f;
-        public const float BETA = 3f;
+        public float BETA = 3f;
+
         public const float ALPHA = 0.25f;
         public const int DISKVOL = 472;
         public const int DISKMINVOL = DISKVOL - 30;
