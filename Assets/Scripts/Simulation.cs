@@ -8,16 +8,16 @@ namespace DTSimulation
     public class Simulation : MonoBehaviour
     {
         [SerializeField]
-        private bool isRunning;
-        [SerializeField]
         private TextAsset config;
         // speed in msec
         [SerializeField]
         [Range(50f, 500f)]
-        private float speed = 200f;
+        private float timeStep = 200f;
         [SerializeField]
-        [Range(1f, 300f)]
-        private float scale;
+        [Range(1f, 10f)]
+        private float scale = 5f;
+        [SerializeField]
+        private bool isRunning;
         // TODO: add DT.BETA slider
 
         private DT myDT;
@@ -80,7 +80,7 @@ namespace DTSimulation
                     myEmbed = new Embed(myDT);
                     myEmbed.ComputeEmbedding();
                 }
-                yield return new WaitForSecondsRealtime(speed / 1000);
+                yield return new WaitForSecondsRealtime(timeStep / 1000);
             }
         }
     }
