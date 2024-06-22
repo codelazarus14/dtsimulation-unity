@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
-using UnityEditor;
 using UnityEngine;
 
 namespace DTSimulation.RandomSurface
 {
     public class Simulation : MonoBehaviour
     {
+        // TODO: make new editor script to have this one work as well
         public DT MyDT { get; private set; }
 
         [SerializeField]
@@ -24,9 +24,6 @@ namespace DTSimulation.RandomSurface
         [SerializeField]
         private bool isRunning;
 
-        private Embed myEmbed;
-
-        // used to force gizmos to only redraw every update 
 
         void Start()
         {
@@ -36,30 +33,25 @@ namespace DTSimulation.RandomSurface
 
         private void OnDrawGizmos()
         {
-            int itmp;
-            float xPos1, yPos1, xPos2, yPos2;
-            // render using gizmos
-            Handles.DrawWireDisc(transform.position, transform.forward, scale);
-
-            if (myEmbed == null) return;
+            if (MyDT == null) return;
 
             for (int i = 1; i < MyDT.node_number; i++)
             {
-                if (myEmbed.Mark[i] != (MyDT.boundary_length + 1))
+                Vector3 node2Pos = scale * MyDT.NodePositions[i];
+                Gizmos.color = Color.red;
+                // TODO: node radius parameter
+                Gizmos.DrawSphere(node2Pos, 0.1f);
+                Gizmos.color = Color.white;
+
+                (int[] neighbors, int nCount) = MyDT.GetNodeNN(i);
+
+                for (int j = 0; j < nCount; j++)
                 {
-                    xPos2 = scale * myEmbed.X[i];
-                    yPos2 = scale * myEmbed.Y[i];
-                    for (int j = MyDT.nstart[i]; j < MyDT.nstart[i + 1]; j++)
-                    {
-                        itmp = MyDT.ncol[j];
-                        xPos1 = scale * myEmbed.X[itmp];
-                        yPos1 = scale * myEmbed.Y[itmp];
+                    int neighbor = neighbors[j];
+                    Vector3 node1Pos = scale * MyDT.NodePositions[neighbor];
 
-                        Vector3 start = new Vector2(xPos1, yPos1);
-                        Vector3 end = new Vector2(xPos2, yPos2);
-
-                        Handles.DrawAAPolyLine(2f, transform.position + start, transform.position + end);
-                    }
+                    //Handles.DrawAAPolyLine(2f, transform.position + node1Pos, transform.position + node2Pos);
+                    Gizmos.DrawLine(node1Pos, node2Pos);
                 }
             }
         }
@@ -77,11 +69,6 @@ namespace DTSimulation.RandomSurface
                         MyDT.TrialChange();
                     }
                     MyDT.Tidy();
-                    MyDT.RelabelNodes();
-                    MyDT.Laplacian();
-
-                    myEmbed = new Embed(MyDT);
-                    myEmbed.ComputeEmbedding();
                 }
                 yield return new WaitForSecondsRealtime(timeStep / 1000);
             }

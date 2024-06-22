@@ -86,6 +86,8 @@ namespace DTSimulation.RandomSurface
         //
         // my fields/deviations from above
         //
+        public Vector3[] NodePositions { get; private set; }
+
         private string configText;
 
         public DT(string config)
@@ -724,6 +726,12 @@ namespace DTSimulation.RandomSurface
                     }
                 }
 
+                NodePositions = new Vector3[node_number];
+                for (int i = 0; i < node_number; i++)
+                {
+                    NodePositions[i] = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+                }
+
                 // print out results
                 string message = "";
                 for (int i = 0; i < s_number; i++)
@@ -761,7 +769,7 @@ namespace DTSimulation.RandomSurface
                         break;
                     }
                 }
-        }
+            }
 
             if (p == null)
                 Debug.LogError($"couldn't find neighbors for node {n}");
@@ -1306,10 +1314,9 @@ namespace DTSimulation.RandomSurface
 
             /* initially just grow with node insertion moves */
 
-            if (grow)
-                sub = D;
-            else
-                sub = Random.Range(0, DPLUS);
+            //sub = Random.Range(0, DPLUS);
+            // force only link flips for now
+            sub = 1;
 
             try_subsimplex[sub]++;
 
@@ -1425,6 +1432,8 @@ namespace DTSimulation.RandomSurface
             int[] temp = new int[DPLUS];
             /* if subsimplex is node then save its label on the stack */
 
+
+            // TODO: remove, unused without insertion/deletion
             if (sub == 0)
             {
                 Push(a[0]);

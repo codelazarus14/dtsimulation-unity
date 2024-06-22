@@ -746,7 +746,8 @@ namespace DTSimulation
             }
         }
 
-        // TODO: rename "GetNearestNeighbor"
+        // TODO: rename "GetNearestNeighbor", and maybe cache/map all node/simplex neighbors in persistent structure
+        // which updates whenever links change
 
         // hardwired for D=2 right now ..
         private void GetNN(Simplex p, int v, int[] nn, int[] vnum)
