@@ -11,7 +11,7 @@ namespace DTSimulation.RandomSurface
 
         // TODO: fix style/naming conventions
         // TODO: fix messy/redundant loops and reduce work
-        // TODO: remove unused, add cached values, make LOGICS and ints = 0 or 1 become bools (usually "int done"), remove int[1]'s
+        // TODO: remove unused, add cached values, make LOGICS and ints = 0 or 1 become bools (usually "int done"), remove int[1]'s (ref)
 
         /* some global constants for run */
 
@@ -744,6 +744,31 @@ namespace DTSimulation.RandomSurface
             {
                 Debug.LogError($"Error parsing config file! {e.Message}");
             }
+        }
+
+        // GetNN for nodes
+        public (int[], int) GetNodeNN(int n)
+        {
+            Simplex p = null;
+
+            for (int i = 0; i < simplex_number && p == null; i++)
+            {
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    if (simplex_point[i].vertices[j] == n)
+                    {
+                        p = simplex_point[i];
+                        break;
+                    }
+                }
+        }
+
+            if (p == null)
+                Debug.LogError($"couldn't find neighbors for node {n}");
+
+            int[] nn = new int[VOL], vcount = new int[1];
+            GetNN(p, n, nn, vcount);
+            return (nn, vcount[0]);
         }
 
         // TODO: rename "GetNearestNeighbor"
