@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <ui:Label tabindex="-1" text="DT Simulation Inspector" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Title" style="-unity-font-style: bold;" />
+    <ui:Label tabindex="-1" text="DT Random Surface Simulation Inspector" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Title" style="-unity-font-style: bold;" />
     <uie:ObjectField label="Config" name="Config" binding-path="config" type="UnityEngine.TextAsset, UnityEngine.CoreModule" />
     <ui:Slider label="Time Step (ms)" high-value="500" name="Timestep" binding-path="timeStep" low-value="50" show-input-field="true" />
     <ui:SliderInt label="BETA*10" high-value="100" name="Beta" binding-path="beta" show-input-field="true" />
