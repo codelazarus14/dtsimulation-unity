@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using UnityEditor;
 using UnityEngine;
 
 namespace DTSimulation.RandomSurface
@@ -50,8 +51,7 @@ namespace DTSimulation.RandomSurface
                     int neighbor = neighbors[j];
                     Vector3 node1Pos = scale * MyDT.NodePositions[neighbor];
 
-                    //Handles.DrawAAPolyLine(2f, transform.position + node1Pos, transform.position + node2Pos);
-                    Gizmos.DrawLine(node1Pos, node2Pos);
+                    Handles.DrawAAPolyLine(2f, transform.position + node1Pos, transform.position + node2Pos);
                 }
             }
         }

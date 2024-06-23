@@ -1155,45 +1155,46 @@ namespace DTSimulation.RandomSurface
             number_measure++;
         }
 
-        private float DS(int q, int deltaq, float qmean)
+        private float DS(Vector3[] vPosns)
         {
-            // computes change in local action. Assumes (q-qmean)^2 form
-            return deltaq * (deltaq + 2 * q - 2 * qmean);
+            float kl = Vector3.Distance(vPosns[2], vPosns[3]);
+            float ij = Vector3.Distance(vPosns[0], vPosns[1]);
+
+            return kl - ij;
+        }
+
+        private float DS_Curvature(Vector3[] vPosns)
+        {
+            // n1 = ij X ik
+            // n2 = il X ij
+            Vector3 normal1 = Vector3.Cross(vPosns[1] - vPosns[0], vPosns[2] - vPosns[0]).normalized;
+            Vector3 normal2 = Vector3.Cross(vPosns[3] - vPosns[0], vPosns[1] - vPosns[0]).normalized;
+
+            return -BETA * Vector3.Dot(normal1, normal2);
         }
 
         private bool Metropolis(int subsimplex, int[] a, Simplex[] addresses)
         {
-            float dsd = 0f, dummy;
-            bool accept;
-            int dum, notnnmarked, imark;
-            int[] vnum = new int[1];
-            int[] nn = new int[VOL];
-            int[] notbound = new int[DPLUSPLUS];
-            Simplex p = null;
-            int tmp;
-
             // TODO: un-fix the volume
 
-            //ds0 = 0f; // delta N0_boundary=0
-            //dsd = kappa_d * (2 * subsimplex - D);
-            //dsd = dsd + (2 * subsimplex - D) * (2 * subsimplex - D + 2 * (simplex_number - vnum[0] - DISKVOL)) / (1f * DV * DV);
+            //////// link flip ///////////////
 
-            dsd = Mathf.Exp(dsd);
+            Vector3[] posns = new Vector3[a.Length];
+            for (int i = 0; i < a.Length; i++)
+                posns[i] = NodePositions[a[i]];
 
-            dummy = Random.Range(0, 1f) - dsd;
+            // deltaE = link flip change + change in curvature
+            float dsd = DS(posns) + DS_Curvature(posns);
 
-            if (dummy < 0)
-                accept = true;
-            else
-                accept = false;
+            return MetropolisTest(dsd); ;
+        }
 
-            if (grow)
-                accept = true;
+        private bool MetropolisTest(float deltaE)
+        {
+            deltaE = Mathf.Exp(deltaE);
+            float dummy = Random.Range(0, 1f) - deltaE;
 
-            if (((simplex_number + 2 * subsimplex - D) < MINVOL) || ((simplex_number + 2 * subsimplex - D) > MAXVOL))
-                accept = false;
-
-            return accept;
+            return grow || dummy < 0;
         }
 
         private void Pop()
