@@ -34,6 +34,7 @@ namespace DTSimulation.RandomSurface
 
         private void OnDrawGizmos()
         {
+            Gizmos.DrawWireSphere(transform.position, scale);
             if (MyDT == null) return;
 
             for (int i = 1; i < MyDT.node_number; i++)
@@ -67,6 +68,8 @@ namespace DTSimulation.RandomSurface
                     for (int i = 0; i < DT.VOL; i++)
                     {
                         MyDT.TrialChange();
+                        // wobble vertex positions
+                        MyDT.WobbleVertex();
                     }
                     MyDT.Tidy();
                 }

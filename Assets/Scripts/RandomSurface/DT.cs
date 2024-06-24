@@ -1199,7 +1199,7 @@ namespace DTSimulation.RandomSurface
             deltaE = Mathf.Exp(deltaE);
             float dummy = Random.Range(0, 1f) - deltaE;
 
-            return grow || dummy < 0;
+            return dummy > 0;
         }
 
         private void Pop()
@@ -1485,7 +1485,7 @@ namespace DTSimulation.RandomSurface
         public void WobbleVertex()
         {
             // size of wobble
-            const float magnitude = 1f;
+            const float magnitude = 0.1f;
 
             Simplex randSimplex;
             do
@@ -1506,19 +1506,38 @@ namespace DTSimulation.RandomSurface
             int[] neighbors = GetOrderedNeighbors(randSimplex, randNode);
             Vector3[] nodePosns = new Vector3[neighbors.Length];
 
-            string orderTest = "";
+            // compute difference in energy
+            float deltaE = DS_WobbleCurvature(newPos, neighbors);
+            deltaE -= DS_WobbleCurvature(pos, neighbors);
 
-            foreach (int n in neighbors)
-                orderTest += $"{n}, ";
+            // update position with wobble if accepted
+            if (MetropolisTest(deltaE))
+            {
+                NodePositions[randNode] = newPos;
+            }
+        }
 
-            orderTest += "\n";
+        private float DS_WobbleCurvature(Vector3 centerPos, int[] neighbors)
+        {
+            // collect all the normals of the surrounding simplices
+            Vector3[] normals = new Vector3[neighbors.Length];
+            for (int i = 0; i < neighbors.Length - 1; i++)
+            {
+                int p1 = neighbors[i];
+                int p2 = neighbors[i + 1];
 
-            (int[] nn, int nCount) = GetNodeNN(randNode);
+                normals[i] = Vector3.Cross(NodePositions[p1] - centerPos, NodePositions[p2] - centerPos).normalized;
+            }
 
-            for (int i = 0; i < nCount; i++)
-                orderTest += $"{nn[i]}, ";
+            // dot each of the pairs
+            float curv = 0f;
+            for (int i = 0; i < neighbors.Length - 1; i++)
+            {
+                curv += Vector3.Dot(normals[i], normals[i + 1]);
+            }
+            curv += Vector3.Dot(normals[^1], normals[0]);
 
-            Debug.Log(orderTest);
+            return curv * -BETA;
         }
 
         private int[] GetOrderedNeighbors(Simplex s, int center)
