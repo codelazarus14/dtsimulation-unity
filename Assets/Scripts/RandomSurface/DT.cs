@@ -1507,8 +1507,8 @@ namespace DTSimulation.RandomSurface
             Vector3[] nodePosns = new Vector3[neighbors.Length];
 
             // compute difference in energy
-            float deltaE = DS_WobbleCurvature(newPos, neighbors);
-            deltaE -= DS_WobbleCurvature(pos, neighbors);
+            float deltaE = WobbleCurvature(newPos, neighbors);
+            deltaE -= WobbleCurvature(pos, neighbors);
 
             // update position with wobble if accepted
             if (MetropolisTest(deltaE))
@@ -1517,7 +1517,7 @@ namespace DTSimulation.RandomSurface
             }
         }
 
-        private float DS_WobbleCurvature(Vector3 centerPos, int[] neighbors)
+        private float WobbleCurvature(Vector3 centerPos, int[] neighbors)
         {
             // collect all the normals of the surrounding simplices
             Vector3[] normals = new Vector3[neighbors.Length];

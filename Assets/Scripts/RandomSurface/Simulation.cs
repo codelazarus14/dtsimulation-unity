@@ -34,8 +34,8 @@ namespace DTSimulation.RandomSurface
 
         private void OnDrawGizmos()
         {
-            Gizmos.DrawWireSphere(transform.position, scale);
             if (MyDT == null) return;
+            Gizmos.DrawWireSphere(transform.position, scale);
 
             for (int i = 1; i < MyDT.node_number; i++)
             {
@@ -60,6 +60,7 @@ namespace DTSimulation.RandomSurface
         private IEnumerator Run()
         {
             MyDT.Thermalize();
+            MyDT.RelabelNodes();
             while (true)
             {
                 if (isRunning)
