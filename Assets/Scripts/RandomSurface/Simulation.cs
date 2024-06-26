@@ -7,7 +7,6 @@ namespace DTSimulation.RandomSurface
 {
     public class Simulation : MonoBehaviour
     {
-        // TODO: make new editor script to have this one work as well
         public DT MyDT { get; private set; }
 
         [SerializeField]
@@ -22,6 +21,9 @@ namespace DTSimulation.RandomSurface
         [SerializeField]
         [Range(1f, 10f)]
         private float scale = 5f;
+        [SerializeField]
+        [Range(0.01f, 1f)]
+        private float nodeSize = 0.1f;
         [SerializeField]
         private bool isRunning;
 
@@ -41,8 +43,7 @@ namespace DTSimulation.RandomSurface
             {
                 Vector3 node2Pos = scale * MyDT.NodePositions[i];
                 Gizmos.color = Color.red;
-                // TODO: node radius parameter
-                Gizmos.DrawSphere(node2Pos, 0.1f);
+                Gizmos.DrawSphere(node2Pos, HandleUtility.GetHandleSize(node2Pos) * nodeSize);
                 Gizmos.color = Color.white;
 
                 (int[] neighbors, int nCount) = MyDT.GetNodeNN(i);
