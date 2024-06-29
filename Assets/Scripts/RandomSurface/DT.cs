@@ -47,17 +47,17 @@ namespace DTSimulation.RandomSurface
 
         public int boundary_length;
         public int node_number = 0;
+        public int pointer_number = 0;
         public int[] boundary;
         public int[] nstart, ncol;
         public float[] nlap;
 
         private Node stack_head = null;
         private int simplex_number = 0;
-        private int pointer_number = 0;
 
         /* data structures */
 
-        private Simplex[] simplex_point;
+        public Simplex[] simplex_point;
         private int stack_count = 0;
 
         /* measurements etc */
@@ -218,10 +218,8 @@ namespace DTSimulation.RandomSurface
                 // find pointer to node 0
                 int done = 0, v;
                 Simplex p = null;
-                int[] nn = null;
-                int[] num = null;
-                num = new int[1];
-                nn = new int[VOL];
+                int[] nn = new int[VOL];
+                int[] num = new int[1];
 
 
                 for (int i = 0; i < simplex_number; i++)
@@ -755,7 +753,7 @@ namespace DTSimulation.RandomSurface
         }
 
         // GetNN for nodes
-        public (int[], int) GetNodeNN(int n)
+        public (int[], int) GetNodeNN(int label)
         {
             Simplex p = null;
 
@@ -764,7 +762,7 @@ namespace DTSimulation.RandomSurface
                 if (simplex_point[i] == null) continue;
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    if (simplex_point[i].vertices[j] == n)
+                    if (simplex_point[i].vertices[j] == label)
                     {
                         p = simplex_point[i];
                         break;
@@ -773,10 +771,10 @@ namespace DTSimulation.RandomSurface
             }
 
             if (p == null)
-                Debug.LogError($"couldn't find neighbors for node {n}");
+                Debug.LogError($"couldn't find neighbors for node {label}");
 
             int[] nn = new int[VOL], vcount = new int[1];
-            GetNN(p, n, nn, vcount);
+            GetNN(p, label, nn, vcount);
             return (nn, vcount[0]);
         }
 
@@ -787,7 +785,7 @@ namespace DTSimulation.RandomSurface
         {
             Simplex[] list = new Simplex[BIGVOL];
             int[] dum = new int[DPLUS];
-            int[] seen = new int[VOL];
+            bool[] seen = new bool[VOL];
             int[] num = new int[1];
             int[] v1 = new int[VOL];
             int[] v2 = new int[VOL];
@@ -798,7 +796,7 @@ namespace DTSimulation.RandomSurface
             FindSimplices(p, dum, dummy, list, num);
 
             for (int i = 0; i < VOL; i++)
-                seen[i] = 0;
+                seen[i] = false;
 
             k = 0;
             for (int i = 0; i < num[0]; i++)
@@ -807,17 +805,19 @@ namespace DTSimulation.RandomSurface
 
                 for (int j = 0; j < DPLUS; j++)
                 {
+                    // find center for neighbor search
                     if (list[i].vertices[j] == v)
                         index = j;
                 }
 
+                // find other two points on simplex
                 v1[k] = list[i].vertices[(index + 1) % DPLUS];
                 v2[k] = list[i].vertices[(index + 2) % DPLUS];
                 k++;
             }
 
             nn[0] = v1[0];
-            seen[0] = 1;
+            seen[0] = true;
             k = 1;
 
             // look for v1[0] in rest of v1/v2 arrays
@@ -827,21 +827,21 @@ namespace DTSimulation.RandomSurface
                 nextpt = 0;
                 for (int i = 0; i < num[0]; i++)
                 {
-                    if (seen[i] == 0)
+                    if (!seen[i])
                     {
                         if (v1[i] == currentpt)
                         {
                             nn[k] = v2[i];
                             nextpt = v2[i];
                             k++;
-                            seen[i] = 1;
+                            seen[i] = true;
                         }
                         if (v2[i] == currentpt)
                         {
                             nn[k] = v1[i];
                             nextpt = v1[i];
                             k++;
-                            seen[i] = 1;
+                            seen[i] = true;
                         }
                     }
                 }
@@ -1158,24 +1158,84 @@ namespace DTSimulation.RandomSurface
 
         private float DS(Vector3[] vPosns)
         {
-            float kl = (vPosns[2] - vPosns[3]).sqrMagnitude;
+            float kl = (vPosns[3] - vPosns[2]).sqrMagnitude;
             float ij = (vPosns[1] - vPosns[0]).sqrMagnitude;
 
             return kl - ij;
         }
 
-        private float DS_Curvature(Vector3[] vPosns)
+        private float DS_Curvature(Vector3[] posns, Vector3[] vPosns)
         {
+
+            // calculate normals (counterclockwise)
+            // for labels [i, j, k, l] = indices [0, 3]
+            //  v2 --- k ---- v1
+            //   \   / | \   /
+            //    \ /  |  \ / 
+            //     i --|-- j
+            //    / \  |  / \
+            //   /   \ | /   \
+            //  v4 --- l --- v3
+
+            // before link flip
             // n1 = ij X ik
             // n2 = il X ij
-            Vector3 beforeN1 = Vector3.Cross(vPosns[1] - vPosns[0], vPosns[2] - vPosns[0]).normalized;
-            Vector3 beforeN2 = Vector3.Cross(vPosns[3] - vPosns[0], vPosns[1] - vPosns[0]).normalized;
+            Vector3 innerBefore1 = Vector3.Cross(posns[1] - posns[0], posns[2] - posns[0]).normalized;
+            Vector3 innerBefore2 = Vector3.Cross(posns[3] - posns[0], posns[1] - posns[0]).normalized;
+            // after link flip
             // n1 = lk X li
             // n2 = lj X lk
-            Vector3 afterN1 = Vector3.Cross(vPosns[2] - vPosns[3], vPosns[0] - vPosns[3]).normalized;
-            Vector3 afterN2 = Vector3.Cross(vPosns[2] - vPosns[1], vPosns[2] - vPosns[3]).normalized;
+            Vector3 innerAfter1 = Vector3.Cross(posns[2] - posns[3], posns[0] - posns[3]).normalized;
+            Vector3 innerAfter2 = Vector3.Cross(posns[1] - posns[3], posns[2] - posns[3]).normalized;
 
-            return -BETA * (Vector3.Dot(afterN1, afterN2) - Vector3.Dot(beforeN1, beforeN2));
+            // triangle neighbors of vertices along the outer edges (i-k-j-l-i around)
+            // n1 = jv1 X jk
+            // n2 = ik X iv2
+            // n3 = jl X jv3
+            // n4 = iv4 X il
+            Vector3 outer1 = Vector3.Cross(vPosns[0] - posns[1], posns[2] - posns[1]).normalized;
+            Vector3 outer2 = Vector3.Cross(posns[2] - posns[0], vPosns[1] - posns[0]).normalized;
+            Vector3 outer3 = Vector3.Cross(posns[3] - posns[1], vPosns[2] - posns[1]).normalized;
+            Vector3 outer4 = Vector3.Cross(vPosns[3] - posns[0], posns[3] - posns[0]).normalized;
+
+            float beforeDots =
+                Vector3.Dot(innerBefore1, innerBefore2) +
+                Vector3.Dot(outer1, innerBefore1) +
+                Vector3.Dot(outer2, innerBefore1) +
+                Vector3.Dot(outer3, innerBefore2) +
+                Vector3.Dot(outer4, innerBefore2);
+            float afterDots =
+                Vector3.Dot(innerAfter1, innerAfter2) +
+                Vector3.Dot(outer1, innerAfter1) +
+                Vector3.Dot(outer2, innerAfter1) +
+                Vector3.Dot(outer3, innerAfter2) +
+                Vector3.Dot(outer4, innerAfter2);
+
+            return -BETA * (afterDots - beforeDots);
+        }
+
+        private int[] GetOuterSimplexNeighbors(int[] labels, Simplex[] addresses)
+        {
+            // hardcoded for 2D 
+            // two triangles (2,3) and list of the four vertices (i/j shared)
+            // find simplex from findface(2/3, i/j) - 4 total
+
+            // link[1, 2] --> v1
+            // link[0, 2] --> v2
+            // link[1, 3] --> v3
+            // link[0, 3] --> v4
+            int[] result = new int[4];
+
+            for (int i = 0; i < 4; i++)
+            {
+                Simplex p = addresses[i / 2 + 2];   // addresses[2/3]
+                int center = labels[i % 2];         // labels[i/j]
+                Simplex n = p.neighbors[FindFace(p, center)];
+                // get label of the vertex not included in the sum (opposite the link)
+                result[i] = n.sum - SumFace(p, center);
+            }
+
+            return result;
         }
 
         private bool Metropolis(int subsimplex, int[] a, Simplex[] addresses)
@@ -1184,22 +1244,30 @@ namespace DTSimulation.RandomSurface
 
             //////// link flip ///////////////
 
+            // get node positions
             Vector3[] posns = new Vector3[a.Length];
+
+            int[] outerNeighbors = GetOuterSimplexNeighbors(a, addresses);
+            Vector3[] oPosns = new Vector3[outerNeighbors.Length];
+
             for (int i = 0; i < a.Length; i++)
+            {
                 posns[i] = NodePositions[a[i]];
+                oPosns[i] = NodePositions[outerNeighbors[i]];
+            }
 
             // deltaE = link flip change + change in curvature
-            float dsd = DS(posns) + DS_Curvature(posns);
+            float dsd = DS(posns) + DS_Curvature(posns, oPosns);
 
             return MetropolisTest(dsd);
         }
 
         private bool MetropolisTest(float deltaE)
         {
-            deltaE = Mathf.Exp(deltaE);
+            deltaE = Mathf.Exp(-deltaE);
             float dummy = Random.Range(0, 1f) - deltaE;
 
-            return dummy > 0;
+            return dummy < 0;
         }
 
         private void Pop()
@@ -1502,13 +1570,22 @@ namespace DTSimulation.RandomSurface
             Vector3 wobble = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
             Vector3 newPos = pos + wobble * magnitude;
 
-            // compute new normals affected by the wobble
-            int[] neighbors = GetOrderedNeighbors(randSimplex, randNode);
-            Vector3[] nodePosns = new Vector3[neighbors.Length];
+            // find neighbor verts + outer verts of simplices bordering inner group of triangles
+            (Simplex[] nSimplices, int[] nNodes) = GetOrderedNeighbors(randSimplex, randNode);
+
+            int[] outerNeighbors = new int[nNodes.Length];
+
+            // TODO: duplicated from GetOuterSimplexNeighbors
+            for (int i = 0; i < outerNeighbors.Length; i++)
+            {
+                Simplex p = nSimplices[i];
+                Simplex n = p.neighbors[FindFace(p, randNode)];
+                // get label of the vertex not included in the sum (opposite the link)
+                outerNeighbors[i] = n.sum - SumFace(p, randNode);
+            }
 
             // compute difference in energy
-            float deltaE = WobbleCurvature(newPos, neighbors);
-            deltaE -= WobbleCurvature(pos, neighbors);
+            float deltaE = DS_WobbleLinks(pos, newPos, nNodes) + DS_WobbleCurvature(pos, newPos, nNodes, outerNeighbors);
 
             // update position with wobble if accepted
             if (MetropolisTest(deltaE))
@@ -1517,40 +1594,70 @@ namespace DTSimulation.RandomSurface
             }
         }
 
-        private float WobbleCurvature(Vector3 centerPos, int[] neighbors)
+        private float DS_WobbleLinks(Vector3 before, Vector3 after, int[] neighbors)
+        {
+            float beforeTotal = 0f;
+            float afterTotal = 0f;
+
+            for (int i = 0; i < neighbors.Length; i++)
+            {
+                // get total distances from each node to center, before and after
+                beforeTotal += (NodePositions[neighbors[i]] - before).sqrMagnitude;
+                afterTotal += (NodePositions[neighbors[i]] - after).sqrMagnitude;
+            }
+
+            return afterTotal - beforeTotal;
+        }
+
+        private float DS_WobbleCurvature(Vector3 before, Vector3 after, int[] neighbors, int[] outerNeighbors)
+        {
+            // compute difference in normals
+            return -BETA * (GetCurvature(after, neighbors, outerNeighbors) - GetCurvature(before, neighbors, outerNeighbors));
+        }
+
+        private float GetCurvature(Vector3 centerPos, int[] neighbors, int[] outerNeighbors)
         {
             // collect all the normals of the surrounding simplices
             Vector3[] normals = new Vector3[neighbors.Length];
+            // normals of the triangles sharing boundary links [p1-p2], [p2-p3] etc.
+            Vector3[] outerNormals = new Vector3[outerNeighbors.Length];
+
             for (int i = 0; i < neighbors.Length - 1; i++)
             {
                 int p1 = neighbors[i];
                 int p2 = neighbors[i + 1];
+                int v = outerNeighbors[i];
 
                 normals[i] = Vector3.Cross(NodePositions[p1] - centerPos, NodePositions[p2] - centerPos).normalized;
+                outerNormals[i] = Vector3.Cross(NodePositions[v] - NodePositions[p1], NodePositions[p2] - NodePositions[p1]).normalized;
             }
+            normals[^1] = Vector3.Cross(NodePositions[neighbors[^1]] - centerPos, NodePositions[neighbors[0]] - centerPos).normalized;
+            outerNormals[^1] = Vector3.Cross(NodePositions[outerNeighbors[^1]] - NodePositions[neighbors[^1]], NodePositions[neighbors[0]] - NodePositions[neighbors[^1]]).normalized;
 
-            // dot each of the pairs
+            // dot each of the pairs (prev-next inner and inner-outer)
             float curv = 0f;
             for (int i = 0; i < neighbors.Length - 1; i++)
             {
                 curv += Vector3.Dot(normals[i], normals[i + 1]);
+                curv += Vector3.Dot(normals[i], outerNormals[i]);
             }
             curv += Vector3.Dot(normals[^1], normals[0]);
+            curv += Vector3.Dot(normals[^1], outerNormals[^1]);
 
-            return curv * -BETA;
+            return curv;
         }
 
-        private int[] GetOrderedNeighbors(Simplex s, int center)
+        private (Simplex[] simplices, int[] nodes) GetOrderedNeighbors(Simplex s, int center)
         {
-            List<int> neighbors = new List<int>();
+            List<Simplex> simplices = new List<Simplex>();
+            List<int> nodes = new List<int>();
 
             // simplex currently being evaluated
             Simplex currSimplex = s;
+            // used with FindSimplices to pick one of D simplices sharing a link
             Simplex[] nearSimplices = new Simplex[D];
             int[] nCount = new int[1];
             int[] link = new int[D];
-
-            int counter = VOL / 2;
 
             do
             {
@@ -1558,7 +1665,7 @@ namespace DTSimulation.RandomSurface
                 link[0] = center;
                 foreach (int vertex in currSimplex.vertices)
                 {
-                    if (!(vertex == center || (neighbors.Count > 0 && vertex == neighbors[^1])))
+                    if (!(vertex == center || (nodes.Count > 0 && vertex == nodes[^1])))
                     {
                         link[1] = vertex;
                         break;
@@ -1567,8 +1674,6 @@ namespace DTSimulation.RandomSurface
 
                 // get two triangles that share the link
                 FindSimplices(currSimplex, link, 2, nearSimplices, nCount);
-
-                Debug.Assert(nCount[0] == nearSimplices.Length);
 
                 // find the (unique) new simplex
                 foreach (Simplex simp in nearSimplices)
@@ -1579,15 +1684,12 @@ namespace DTSimulation.RandomSurface
                         break;
                     }
                 }
-                // add new neighbor to array
-                neighbors.Add(link[1]);
-                counter--;
-            } while (currSimplex != s && counter > 0);
+                // add new neighbor to lists
+                nodes.Add(link[1]);
+                simplices.Add(currSimplex);
+            } while (currSimplex != s);
 
-            if (counter == 0)
-                Debug.Log("infinite loop");
-
-            return neighbors.ToArray();
+            return (simplices.ToArray(), nodes.ToArray());
         }
     }
 }
