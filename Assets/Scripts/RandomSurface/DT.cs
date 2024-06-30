@@ -434,38 +434,30 @@ namespace DTSimulation.RandomSurface
             // using a string stack to imitate use of the Scanner in the java version
             Stack<string> configStack = new Stack<string>();
             for (int i = configLines.Length - 1; i >= 0; i--)
-            {
                 configStack.Push(configLines[i]);
-            }
-
-            int stackCount, s_number, dummy, l_number, c, e1, e2, simp;
-
-            int[] dum = new int[DPLUS];
-            int[,] dum2;
-
-            float k0, b;
-            float temp;
 
             // read config values
             try
             {
-                s_number = int.Parse(configStack.Pop());
-                dum2 = new int[s_number, DPLUS];
-                node_number = int.Parse(configStack.Pop());
-                stackCount = int.Parse(configStack.Pop());
-                // TODO: why do these exist + debug cleanup
-                temp = float.Parse(configStack.Pop());
-                temp = float.Parse(configStack.Pop());
-                temp = float.Parse(configStack.Pop());
+                int simplexCount = int.Parse(configStack.Pop());
+                int[,] neighborBuffer = new int[simplexCount, DPLUS];
+                int[] vertexBuffer = new int[DPLUS];
 
-                Debug.Log($"{s_number}, {node_number}, {stackCount}");
+                node_number = int.Parse(configStack.Pop());
+                int stackCount = int.Parse(configStack.Pop());
+                // TODO: why do these exist + debug cleanup
+                float.Parse(configStack.Pop());
+                float.Parse(configStack.Pop());
+                float.Parse(configStack.Pop());
+
+                Debug.Log($"{simplexCount}, {node_number}, {stackCount}");
 
                 simplex_number = 0;
                 pointer_number = 0;
 
                 Debug.Log("Reading in existing configuration");
 
-                Debug.Log($"Configuration has volume: {s_number}");
+                Debug.Log($"Configuration has volume: {simplexCount}");
                 Debug.Log($"Node number: {node_number}");
                 Debug.Log($"curvaturesq coupling: {Beta}");
 
@@ -479,28 +471,29 @@ namespace DTSimulation.RandomSurface
                 }
 
                 // set up simplices
-                for (int i = 0; i < s_number; i++)
+                for (int i = 0; i < simplexCount; i++)
                 {
                     for (int j = 0; j < DPLUS; j++)
                     {
-                        dum[j] = int.Parse(configStack.Pop());
-                        dum2[i, j] = int.Parse(configStack.Pop());
+                        vertexBuffer[j] = int.Parse(configStack.Pop());
+                        neighborBuffer[i, j] = int.Parse(configStack.Pop());
                     }
 
-                    simplex_point[i] = new Simplex(dum, DPLUS, pointer_number);
+                    simplex_point[i] = new Simplex(vertexBuffer, DPLUS, pointer_number);
                     simplex_number++;
                     pointer_number++;
                 }
 
                 // set neighbors
-                for (int i = 0; i < s_number; i++)
+                for (int i = 0; i < simplexCount; i++)
                 {
                     for (int j = 0; j < DPLUS; j++)
                     {
-                        simplex_point[i].neighbors[j] = simplex_point[dum2[i, j]];
+                        simplex_point[i].neighbors[j] = simplex_point[neighborBuffer[i, j]];
                     }
                 }
 
+                // give nodes random positions
                 NodePositions = new Vector3[node_number];
                 for (int i = 0; i < node_number; i++)
                 {
@@ -509,7 +502,7 @@ namespace DTSimulation.RandomSurface
 
                 // print out results
                 string message = "";
-                for (int i = 0; i < s_number; i++)
+                for (int i = 0; i < simplexCount; i++)
                 {
                     for (int j = 0; j < DPLUS; j++)
                     {
