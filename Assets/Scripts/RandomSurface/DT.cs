@@ -52,13 +52,11 @@ namespace DTSimulation.RandomSurface
         public int[] nstart, ncol;
         public float[] nlap;
 
-        private Node stack_head = null;
         private int simplex_number = 0;
 
         /* data structures */
 
         public Simplex[] simplex_point;
-        private int stack_count = 0;
 
         /* measurements etc */
 
@@ -67,21 +65,10 @@ namespace DTSimulation.RandomSurface
         private int vol_monitor = 0, num_monitor = 0, b_monitor = 0, growing_vol;
         private float manifold_check;
 
-        private bool grow;
-
         /* simple observables -- number of nodes, simplices and size */
         /* and variable versions of couplings */
 
         private float real_simplex = 0f, real_node = 0f;
-
-        /* routines checks manifold constraint */
-        /* this entails examining neighbour simplices for an occurrence */
-        /* of the 'opposing' vertex in a simplex which also contains the other*/
-        /* new common subsimplex vertices */
-        /* this is equivalent to requiring that the new common subsimplex */
-        /* is not present anywhere else in the triangulation */
-        /* examine all neighbours gotten by moving out on faces */
-        /* which contain the other new common subsimplex vertices */
 
         //
         // my fields/deviations from above
@@ -92,116 +79,24 @@ namespace DTSimulation.RandomSurface
 
         public DT(string config)
         {
-            configText = config;
-        }
-
-        /* driver for simplex Monte Carlo */
-        private void Main()
-        {
-            // abstract graph of points
-            // to some coordinate space = enforce smoothness = flatness thru an Action:
-            // - maximize dot product of 3d triangle normals? parallel/coplanar
-            // - embedded curvature
-            // take curr action value, imagine doing it, compute new action resulting, if < old? accept, otherwise accept stochastically... exponential
-            // moves towards lower energies with some fluctuations towards higher energy - metropolis algo
-
-            // pick moves at random, link flips or moving vertices
-            // generally move towards lower energy w some fluctuations towards higher (depending on temperature)
-
             // TODO: make thermalize a coroutine and set value back up to 500, sweeps to 20000
-            Thermalize();
-            /* sweep lattice outputting measurements every so often */
-
-            Debug.Log("Starting measurements");
-            for (int sweep = 1; sweep < SWEEPS; sweep++)
-            {
-                Debug.Log($"sweep: {sweep}");
-                for (int iter = 0; iter < VOL; iter++)
-                    TrialChange();
-                Tidy();
-
-                bool done = false;
-                int v;
-                Debug.Log($"Simplex number: {simplex_number}");
-                Simplex p = null;
-                int[] num = new int[1];
-                int[] nn = new int[VOL];
-
-                // TODO: i'm pretty sure this search for node 0 is copied like 3 times, along w the code below it
-                for (int i = 0; i < simplex_number; i++)
-                {
-                    if (done) break;
-                    for (int j = 0; j < DPLUS; j++)
-                    {
-                        if (simplex_point[i].vertices[j] == 0)
-                        {
-                            p = simplex_point[i];
-                            done = true;
-                            break;
-                        }
-                    }
-                }
-                v = 0;
-
-                GetNN(p, v, nn, num);
-
-                boundary_length = num[0];
-
-                num_monitor++;
-                vol_monitor += simplex_number;
-                b_monitor += boundary_length;
-
-                if (sweep % 100 == 0)
-                {
-                    ShiftCoupling();
-                    Debug.Log($"Boundaryyy length: {boundary_length}");
-                    Debug.Log($"Total bulkyyy node: {node_number - boundary_length - 1}");
-                }
-
-                if (sweep % GAP == 0)
-                    Measure();
-            }
-
-            /* finally dump final configuration and print some results */
-            PrintOut();
+            configText = config;
         }
 
         public void Thermalize()
         {
             simplex_point = new Simplex[BIGVOL];
             ReadFile();
-            //InitialConfig();
 
             nlap = new float[NONZEROS];
             ncol = new int[NONZEROS];
             nstart = new int[VOL];
             boundary = new int[VOL];
 
-            //PrintConfig();
-
             legal_subsimplex = new int[DPLUS];
             try_subsimplex = new int[DPLUS];
             manifold_subsimplex = new int[DPLUS];
             go_subsimplex = new int[DPLUS];
-
-            /* build lattice */
-
-
-            //grow = LOGIC.NO;
-            //if (grow == LOGIC.YES)
-            //{
-            //    while (growing_vol < VOL)
-            //    {
-            //        //System.out.println(growing_vol);
-            //        trial_change();
-            //        growing_vol += D;
-            //        //PrintConfig();
-            //    }
-            //}
-
-            //Tidy();
-
-            grow = false;
 
             /* thermalise and output info on run */
 
@@ -251,25 +146,6 @@ namespace DTSimulation.RandomSurface
             }
 
             Init();
-        }
-
-        private void PrintConfig()
-        {
-            string message = "Configuration\n";
-            message += "Number of simplices and nodes " + simplex_number + ", " + node_number + "\n";
-            for (int i = 0; i < pointer_number; i++)
-            {
-                message += "Simplex " + i + "\n";
-                if (simplex_point[i] != null)
-                {
-                    for (int j = 0; j < DPLUS; j++)
-                    {
-                        message += " - vertex " + simplex_point[i].vertices[j] + "\n";
-                        message += " - neighbor " + simplex_point[i].neighbors[j].label + "\n";
-                    }
-                }
-            }
-            Debug.Log(message);
         }
 
         private bool AllowedMove(Simplex p, int sub, int[] a)
@@ -464,22 +340,6 @@ namespace DTSimulation.RandomSurface
             return VOL;
         }
 
-        // TODO: about comment below, refactor FindSimplices to just return the value instead?
-        // do we even need FindOrder? it just calls FindSimplices and returns the value lmao
-
-        // wrap num in single element array to pass by ref !    <-- from java
-        private int FindOrder(int a, Simplex pp)
-        {
-            Simplex[] list = new Simplex[MAXVOL];
-            int[] dum = new int[DPLUS];
-            int[] num = new int[1];
-            /* finds num of d-simps sharing vertex a */
-            dum[0] = a;
-            int dummy = 1;
-            FindSimplices(pp, dum, dummy, list, num);
-            return num[0];
-        }
-
         /* finds addresses of all simplices which share a given subsimplex */
         private void FindSimplices(Simplex p, int[] a, int sub, Simplex[] s_near, int[] num)
         {
@@ -550,12 +410,7 @@ namespace DTSimulation.RandomSurface
                 for (int i = 0; i < DPLUS; i++)
                     a[i] = p.vertices[i];
 
-                /* opposing vertex in this case is 'new' one obtained off stack */
-
-                if (stack_head == null)
-                    a[DPLUS] = node_number;
-                else
-                    a[DPLUS] = stack_head.name;
+                a[DPLUS] = node_number;
 
                 isimplex[DPLUS] = p;
                 return true;
@@ -651,8 +506,6 @@ namespace DTSimulation.RandomSurface
             // basically this is all based on a fragile text-based structure that has to be 1-1 with the whitespaced config file
             // when using a structured JSON type thing would save a lot of headaches and look better
 
-            // also TODO: maybe create a textmesh to store these outputs like an in-game console cuz the debug one is not great
-
             // load config
             string[] configLines = configText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
             // using a string stack to imitate use of the Scanner in the java version
@@ -685,7 +538,6 @@ namespace DTSimulation.RandomSurface
                 Debug.Log($"{s_number}, {node_number}, {stackCount}");
 
                 simplex_number = 0;
-                stack_count = 0;
                 pointer_number = 0;
 
                 Debug.Log("Reading in existing configuration");
@@ -696,9 +548,11 @@ namespace DTSimulation.RandomSurface
 
                 for (int i = 0; i < stackCount; i++)
                 {
-                    // add used vertex labels to stack
-                    dummy = int.Parse(configStack.Pop());
-                    Push(dummy);
+                    // ignore stack labels for now
+                    int.Parse(configStack.Pop());
+                    //// add used vertex labels to stack
+                    //dummy = int.Parse(configStack.Pop());
+                    //Push(dummy);
                 }
 
                 // set up simplices
@@ -752,6 +606,7 @@ namespace DTSimulation.RandomSurface
             }
         }
 
+        // TODO: remove or squash with GetNN and OrderedNeighbors
         // GetNN for nodes
         public (int[], int) GetNodeNN(int label)
         {
@@ -777,8 +632,6 @@ namespace DTSimulation.RandomSurface
             GetNN(p, label, nn, vcount);
             return (nn, vcount[0]);
         }
-
-        // TODO: rename "GetNearestNeighbor"
 
         // hardwired for D=2 right now ..
         private void GetNN(Simplex p, int v, int[] nn, int[] vnum)
@@ -853,149 +706,6 @@ namespace DTSimulation.RandomSurface
             return;
         }
 
-        public void Laplacian()
-        {
-            bool done;
-            int v, k;
-            Simplex p = null;
-            int[] num_in_row = new int[VOL];
-            int[] col = new int[NONZEROS];
-            int[] start = new int[VOL];
-            bool[] not_seen = new bool[VOL];
-            int[] q = new int[VOL];
-            int[] nn = new int[VOL];
-            float[] lap = new float[NONZEROS];
-            bool[] on_boundary = new bool[VOL];
-            int[] num = new int[1];
-
-            // find pointer to node 0
-
-            done = false;
-            for (int i = 0; i < simplex_number; i++)
-            {
-                if (done) break;
-                for (int j = 0; j < DPLUS; j++)
-                {
-                    if (simplex_point[i].vertices[j] == 0)
-                    {
-                        p = simplex_point[i];
-                        done = true;
-                        break;
-                    }
-                }
-            }
-
-            v = 0;
-
-            GetNN(p, v, nn, num);
-            boundary_length = num[0];
-            Debug.Log($"Boundary length {boundary_length}");
-            Debug.Log($"Total bulk node {node_number - boundary_length - 1}");
-
-            for (int i = 0; i < boundary_length; i++)
-                boundary[i] = nn[i];
-
-            for (int i = 0; i < VOL; i++)
-                not_seen[i] = true;
-
-            not_seen[0] = false;
-
-            for (k = 0; k < VOL; k++)
-            {
-                start[k] = k * NUMROW;
-                num_in_row[k] = 0;
-                q[k] = 0;
-            }
-            for (k = 0; k < NONZEROS; k++)
-                col[k] = -1;
-
-            int maxv = 0, minv = 100000;
-            int vcount = 0;
-            for (int i = 0; i < simplex_number; i++)
-            {
-                for (int j = 0; j < DPLUS; j++)
-                {
-                    v = simplex_point[i].vertices[j];
-
-                    if (v > maxv) maxv = v;
-                    if (v < minv) minv = v;
-
-                    // leave out marked node
-
-                    if (not_seen[v])
-                    {
-                        vcount++;
-                        // new vertex
-
-                        GetNN(simplex_point[i], v, nn, num);
-                        for (k = 0; k < num[0]; k++)
-                        {
-                            if (nn[k] != 0)
-                            {
-                                lap[start[v] + num_in_row[v]] = -1f;
-                                col[start[v] + num_in_row[v]] = nn[k];
-                                num_in_row[v]++;
-                            }
-                        }
-                        // diagonal piece
-                        lap[start[v] + num_in_row[v]] = num_in_row[v];
-                        col[start[v] + num_in_row[v]] = v;
-                        num_in_row[v]++;
-                        if (num_in_row[v] > NUMROW)
-                            Debug.LogError($"oops - dimension sparse row too large at v={v}");
-
-                        not_seen[v] = false;
-                    }
-                }
-            }
-
-            if (maxv != node_number - 1 || minv != 0)
-                Debug.LogError($"relabeled triangulation incorrect with minv={minv} and maxv={maxv}");
-            int c = 0;
-            for (int i = 1; i <= maxv; i++)
-            {
-                if (num_in_row[i] == 0) Debug.LogError($"missing vertex {i}");
-                if (i > node_number - 1) Debug.LogError($"super minimal vertex label {i}");
-                if (num_in_row[i] != 0)
-                    c += num_in_row[i] - 1;
-            }
-
-            // clean up sparse  data structures
-            k = 0;
-            nstart[1] = 0;
-            nstart[0] = 0;
-            for (int i = 0; i < node_number; i++)
-            {
-                for (int j = start[i]; j < start[i + 1]; j++)
-                {
-                    if (col[j] != -1)
-                    {
-                        ncol[k] = col[j];
-                        nlap[k] = lap[j];
-                        k++;
-                    }
-                }
-                nstart[i + 1] = nstart[i] + num_in_row[i];
-            }
-        }
-
-        private void DeleteStack()
-        {
-            Node tmp = stack_head;
-            Node[] dum = new Node[VOL];
-            int num = 0;
-
-            while (tmp != null)
-            {
-                dum[num] = tmp;
-                tmp = tmp.next;
-                num++;
-            }
-
-            stack_head = null;
-            stack_count = 0;
-        }
-
         public void RelabelNodes()
         {
             const int VERYBIG = 100000;
@@ -1052,9 +762,6 @@ namespace DTSimulation.RandomSurface
                 }
                 simplex_point[i].sum = add;
             }
-
-            // delete old node stack ...
-            DeleteStack();
         }
 
         /* opens files, initialises variables */
@@ -1096,64 +803,6 @@ namespace DTSimulation.RandomSurface
             real_node = 0f;
             manifold_check = 0f;
             max_point = 0;
-        }
-
-        void InitialConfig()
-        {
-            int index, tmp;
-            int[] dum, dum2;
-            dum = new int[DPLUSPLUS];
-            dum2 = new int[DPLUSPLUS];
-
-            for (int i = 0; i < DPLUSPLUS; i++)
-                dum[i] = i;
-
-            for (int i = 0; i < DPLUSPLUS; i++)
-            {
-                Combo(dum, dum2, DPLUSPLUS, i);
-
-                simplex_point[pointer_number] = new Simplex(dum2, D, pointer_number);
-
-                simplex_number++;
-                pointer_number++;
-            }
-
-            /* now set up pointers loop over faces to simplices */
-
-            for (int i = 0; i < DPLUSPLUS; i++)
-            {
-                for (int j = 0; j < DPLUSPLUS; j++)
-                    if (j != i)
-                    {
-                        index = FindFace(simplex_point[i], dum[j]);
-                        simplex_point[i].neighbors[index] = simplex_point[j];
-                    }
-            }
-
-            string message = "";
-            for (int i = 0; i < simplex_number; i++)
-            {
-                for (int j = 0; j < DPLUS; j++)
-                {
-                    message += simplex_point[i].vertices[j] + "\t" + simplex_point[i].neighbors[j].label + "\t";
-                }
-                message += "\n";
-            }
-            Debug.Log(message);
-
-            node_number = DPLUSPLUS;
-            growing_vol = DPLUSPLUS;
-            return;
-        }
-
-        private void Measure()
-        {
-            real_simplex += simplex_number;
-            real_node += node_number;
-
-            Tidy();
-
-            number_measure++;
         }
 
         private float DS(Vector3[] vPosns)
@@ -1268,68 +917,6 @@ namespace DTSimulation.RandomSurface
             float dummy = Random.Range(0, 1f) - deltaE;
 
             return dummy < 0;
-        }
-
-        private void Pop()
-        {
-            /* if stack is empty do nothing */
-
-            if (stack_head == null)
-                return;
-
-            // TODO: just remove temp? we don't return it
-            Node temp = stack_head;
-            stack_head = stack_head.next;
-            stack_count--;
-
-            return;
-        }
-
-        /* writes some results to output stream */
-        private void PrintOut()
-        {
-            float dummy = 0f;
-            string results = "Results:\n";
-
-            real_simplex = real_simplex / number_measure;
-            real_node = real_node / number_measure;
-
-            for (int i = 0; i < DPLUS; i++)
-                dummy += legal_subsimplex[i];
-
-            manifold_check /= dummy;
-            manifold_check *= VOL;
-
-            float tmp = (real_simplex - VOL) * 2f / (DV * DV);
-            results += $"Average number of simplices: {real_simplex}\n";
-            results += $"Average number of nodes: {real_node}\n";
-            results += $"Average maximum pointer number: {max_point}\n";
-            results += $"Average number of simplices in manifold check {manifold_check}\n";
-            results += $"Final kappa_d {kappa_d + tmp}\n";
-
-            results += "Subsimplex Moves\n";
-            for (int i = 0; i < DPLUS; i++)
-            {
-                results += $"{i} subsimplices : \n";
-                results += $"Number tried {try_subsimplex[i]}\n";
-                results += $"Number that are legal {legal_subsimplex[i]}\n";
-                results += $"Number that pass manifold test {manifold_subsimplex[i]}\n";
-                results += $"Number that pass Metropolis test {go_subsimplex[i]}\n";
-            }
-
-            Debug.Log(results);
-        }
-
-        /* routine pushes deleted vertex label onto stack - DT.java */
-        private void Push(int i)
-        {
-            Node temp = new Node();
-            temp.name = i;
-            temp.next = stack_head;
-
-            stack_head = temp;
-            stack_count++;
-            return;
         }
 
         /* routine handles reconnection of new simplex pointers */
@@ -1504,20 +1091,6 @@ namespace DTSimulation.RandomSurface
         {
             int[] c = new int[DPLUSPLUS];
             int[] temp = new int[DPLUS];
-            /* if subsimplex is node then save its label on the stack */
-
-
-            // TODO: remove, unused without insertion/deletion
-            if (sub == 0)
-            {
-                Push(a[0]);
-                node_number--;
-            }
-            if (sub == D)
-            {
-                Pop();
-                node_number++;
-            }
 
             /* loop over new simplices */
 

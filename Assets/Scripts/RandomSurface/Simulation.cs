@@ -33,7 +33,7 @@ namespace DTSimulation.RandomSurface
         [SerializeField]
         private bool isRunning;
 
-        
+
         void Start()
         {
             MyDT = new DT(config.text);
@@ -79,6 +79,7 @@ namespace DTSimulation.RandomSurface
                         center += MyDT.NodePositions[v];
                     center /= p.vertices.Length;
 
+                    // TODO: fix (this doesn't always keep the same orientation across triangles)
                     Vector3 n = Vector3.Cross(
                         MyDT.NodePositions[p.vertices[1]] - MyDT.NodePositions[p.vertices[0]],
                         MyDT.NodePositions[p.vertices[2]] - MyDT.NodePositions[p.vertices[0]]).normalized;
