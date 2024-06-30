@@ -26,7 +26,7 @@ namespace DTSimulation.RandomSurface
             // make beta slider update underlying simulation DT
             DT myDT = (target as Simulation).MyDT;
             if (myDT != null)
-                myDT.BETA = property.intValue * 0.1f;
+                myDT.Beta = property.intValue * 0.1f;
         }
     }
 }

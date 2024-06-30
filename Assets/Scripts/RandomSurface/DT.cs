@@ -15,60 +15,30 @@ namespace DTSimulation.RandomSurface
 
         /* some global constants for run */
 
-        private float kappa_0 = 0f, kappa_d = 0f, kappa_0b = 0f;
-        public float BETA = 3f;
-
-        public const float ALPHA = 0.25f;
-        public const int DISKVOL = 472;
-        public const int DISKMINVOL = DISKVOL - 30;
-        public const int DISKMAXVOL = DISKVOL + 30;
-        public const float FRAC = 0.75f;
-        public const float TC = 7f;
-        public const int MARKEDQ = 282; //FRAC*(DISKVOL+2)/(2.0-FRAC)
-
-        public const int D = 2;
-        public const int DPLUS = D + 1;
-        public const int DPLUSPLUS = D + 2;
+        private const int DISKVOL = 472;
+        private const int MARKEDQ = 282; //FRAC*(DISKVOL+2)/(2.0-FRAC)
         public const int VOL = DISKVOL + MARKEDQ;
-        public const int BIGVOL = 4 * VOL;
-        public const int MAXVOL = VOL + 30;
-        public const int MINVOL = DPLUSPLUS;
-        public const int NUMROW = VOL / 2;
-        public const int NONZEROS = NUMROW * VOL;
 
-        public const int THERMALISE = 1;
-        public const int SWEEPS = 100;
-        public const int TUNE_COUPLING = 100;
-        public const int SEED = 1;
-        public const int GAP = 10;
-        public const int DV = 2;
+        public float Beta = 3f;
+
+        private const int D = 2;
+        private const int DPLUS = D + 1;
+        private const int DPLUSPLUS = D + 2;
+
+        private const int BIGVOL = 4 * VOL;
+        private const int MAXVOL = VOL + 30;
+
+        private const int THERMALISE = 1;
 
         /* simple global pointers and counters */
 
-        public int boundary_length;
         public int node_number = 0;
         public int pointer_number = 0;
-        public int[] boundary;
-        public int[] nstart, ncol;
-        public float[] nlap;
-
         private int simplex_number = 0;
 
         /* data structures */
 
         public Simplex[] simplex_point;
-
-        /* measurements etc */
-
-        private int number_measure = 0, max_point;
-        private int[] legal_subsimplex, try_subsimplex, manifold_subsimplex, go_subsimplex;
-        private int vol_monitor = 0, num_monitor = 0, b_monitor = 0, growing_vol;
-        private float manifold_check;
-
-        /* simple observables -- number of nodes, simplices and size */
-        /* and variable versions of couplings */
-
-        private float real_simplex = 0f, real_node = 0f;
 
         //
         // my fields/deviations from above
@@ -88,16 +58,6 @@ namespace DTSimulation.RandomSurface
             simplex_point = new Simplex[BIGVOL];
             ReadFile();
 
-            nlap = new float[NONZEROS];
-            ncol = new int[NONZEROS];
-            nstart = new int[VOL];
-            boundary = new int[VOL];
-
-            legal_subsimplex = new int[DPLUS];
-            try_subsimplex = new int[DPLUS];
-            manifold_subsimplex = new int[DPLUS];
-            go_subsimplex = new int[DPLUS];
-
             /* thermalise and output info on run */
 
             Header();
@@ -109,43 +69,7 @@ namespace DTSimulation.RandomSurface
                 for (int iter = 0; iter < VOL; iter++)
                     TrialChange();
                 Tidy();
-
-                // find pointer to node 0
-                int done = 0, v;
-                Simplex p = null;
-                int[] nn = new int[VOL];
-                int[] num = new int[1];
-
-
-                for (int i = 0; i < simplex_number; i++)
-                {
-                    if (done == 1) break;
-                    for (int j = 0; j < (D + 1); j++)
-                    {
-                        if (simplex_point[i].vertices[j] == 0) { p = simplex_point[i]; done = 1; break; }
-                    }
-                }
-                v = 0;
-
-                GetNN(p, v, nn, num);
-
-                num_monitor++;
-                vol_monitor += simplex_number;
-                b_monitor += num[0];
-
-                string message = "";
-                if (therm % TUNE_COUPLING == 0)
-                {
-                    message += "V: " + (simplex_number - num[0]);
-                    message += "L: " + num[0];
-                    message += "N0B: " + (node_number - boundary_length - 1);
-                    Debug.Log(message);
-
-                    ShiftCoupling();
-                }
             }
-
-            Init();
         }
 
         private bool AllowedMove(Simplex p, int sub, int[] a)
@@ -245,7 +169,6 @@ namespace DTSimulation.RandomSurface
             for (int i = 0; i < search; i++)
                 examine[i].flag = false;
 
-            manifold_check += (float)search / VOL;
             return good;
         }
 
@@ -544,7 +467,7 @@ namespace DTSimulation.RandomSurface
 
                 Debug.Log($"Configuration has volume: {s_number}");
                 Debug.Log($"Node number: {node_number}");
-                Debug.Log($"k0b coupling, k2 coupling and curvaturesq coupling: {kappa_0b}, {kappa_d}, {BETA}");
+                Debug.Log($"curvaturesq coupling: {Beta}");
 
                 for (int i = 0; i < stackCount; i++)
                 {
@@ -595,8 +518,6 @@ namespace DTSimulation.RandomSurface
                     message += "\n";
                 }
                 Debug.Log(message);
-
-                growing_vol = simplex_number;
 
                 Debug.Log("Have read data successfully");
             }
@@ -768,41 +689,14 @@ namespace DTSimulation.RandomSurface
         /* prints out the run parameters */
         private void Header()
         {
-            max_point = 0;
-
             string header = "----------HEADER----------\n";
 
             header += "Dimension: " + D + "\n";
             header += "Volume: " + VOL + "\n";
-            header += "Marked node coupling: " + ALPHA + "\n";
-            header += "Simplex coupling: " + kappa_d + "\n";
-            header += "Bulk coupling: " + BETA + "\n";
-            header += "Number of sweeps: " + SWEEPS + "\n";
+            header += "Bulk coupling: " + Beta + "\n";
             header += "Thermalization time: " + THERMALISE + "\n";
-            header += "Number of sweeps between KD tuning: " + TUNE_COUPLING + "\n";
-            header += "Gap between measurements: " + GAP + "\n";
-            header += "Volume fluctuation parameter: " + DV + "\n";
-            header += "Random number seed: " + SEED + "\n";
 
             Debug.Log(header);
-        }
-
-        /* opens all the data files and zeroes measure bins */
-        private void Init()
-        {
-            // TODO: is clearing these arrays manually necessary
-            for (int i = 0; i < DPLUS; i++)
-            {
-                try_subsimplex[i] = 0;
-                go_subsimplex[i] = 0;
-                manifold_subsimplex[i] = 0;
-                legal_subsimplex[i] = 0;
-            }
-
-            real_simplex = 0f;
-            real_node = 0f;
-            manifold_check = 0f;
-            max_point = 0;
         }
 
         private float DS(Vector3[] vPosns)
@@ -860,7 +754,7 @@ namespace DTSimulation.RandomSurface
                 Vector3.Dot(outer3, innerAfter2) +
                 Vector3.Dot(outer4, innerAfter2);
 
-            return -BETA * (afterDots - beforeDots);
+            return -Beta * (afterDots - beforeDots);
         }
 
         private int[] GetOuterSimplexNeighbors(int[] labels, Simplex[] addresses)
@@ -979,31 +873,7 @@ namespace DTSimulation.RandomSurface
             // force only link flips for now
             sub = 1;
 
-            try_subsimplex[sub]++;
-
             return temp;
-        }
-
-        private void ShiftCoupling()
-        {
-            float dum = (vol_monitor - b_monitor) / ((float)num_monitor);
-            float dum2 = b_monitor / ((float)num_monitor);
-
-            kappa_d = kappa_d + (2f / (DV * DV)) * (dum - DISKVOL) + 2f * ALPHA * (dum2 - MARKEDQ) * FRAC / (2f - FRAC);
-            //  ALPHA=ALPHA+2*ALPHA*(dum2-FRAC*VOL/2);
-
-            string message = "";
-            message += "New coupling kappa_d is " + kappa_d;
-            message += "Average disk volume=" + dum;
-            message += "Average boundary length=" + dum2;
-            message += "sum of total boundary length=" + b_monitor;
-            Debug.Log(message);
-
-            vol_monitor = 0;
-            b_monitor = 0;
-            num_monitor = 0;
-
-            return;
         }
 
         /* routine returns sum of vertices around the face conjugate to node i */
@@ -1024,8 +894,6 @@ namespace DTSimulation.RandomSurface
             /* run down array compressing non NULL extries into new array */
             /* and reassigning simplex labels according to their new index in this */
             /* array. Finally copy back */
-
-            if (pointer_number > max_point) max_point = pointer_number;
 
             for (int i = 0; i < pointer_number; i++)
             {
@@ -1055,7 +923,6 @@ namespace DTSimulation.RandomSurface
             Simplex simp;
             Simplex[] addresses = new Simplex[DPLUSPLUS];
             int[] labels = new int[DPLUSPLUS];
-            int[] q = new int[MAXVOL];
             bool legal_move, good_manifold, metro_accept;
 
             // grab triangle and move type at random
@@ -1066,21 +933,15 @@ namespace DTSimulation.RandomSurface
 
             if (!legal_move) return;
 
-            legal_subsimplex[subsimplex]++;
-
             // make sure move will not create degeneracies
             good_manifold = AllowedMove(simp, subsimplex, labels);
 
             if (!good_manifold) return;
 
-            manifold_subsimplex[subsimplex]++;
-
             // check change in action
             metro_accept = Metropolis(subsimplex, labels, addresses);
 
             if (!metro_accept) return;
-
-            go_subsimplex[subsimplex]++;
 
             // if accept update triangulation
             DT_Update(labels, addresses, subsimplex);
@@ -1185,7 +1046,7 @@ namespace DTSimulation.RandomSurface
         private float DS_WobbleCurvature(Vector3 before, Vector3 after, int[] neighbors, int[] outerNeighbors)
         {
             // compute difference in normals
-            return -BETA * (GetCurvature(after, neighbors, outerNeighbors) - GetCurvature(before, neighbors, outerNeighbors));
+            return -Beta * (GetCurvature(after, neighbors, outerNeighbors) - GetCurvature(before, neighbors, outerNeighbors));
         }
 
         private float GetCurvature(Vector3 centerPos, int[] neighbors, int[] outerNeighbors)

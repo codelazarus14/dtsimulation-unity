@@ -33,7 +33,6 @@ namespace DTSimulation.RandomSurface
         [SerializeField]
         private bool isRunning;
 
-
         void Start()
         {
             MyDT = new DT(config.text);
