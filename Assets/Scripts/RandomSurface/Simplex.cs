@@ -22,21 +22,17 @@ namespace DTSimulation.RandomSurface
 
         public Simplex(int[] a, int N, int pointer_number)
         {
-            int i, count;
-            int DPLUS = N + 1;
+            vertices = new int[N];
+            neighbors = new Simplex[N];
+            sum = 0;
 
-            vertices = new int[DPLUS];
-            neighbors = new Simplex[DPLUS];
-            count = 0;
-
-            for (i = 0; i < DPLUS; i++)
+            for (int i = 0; i < N; i++)
             {
                 vertices[i] = a[i];
                 neighbors[i] = null;
-                count += a[i];
+                sum += a[i];
             }
 
-            sum = count;
             label = pointer_number;
             flag = false;
         }

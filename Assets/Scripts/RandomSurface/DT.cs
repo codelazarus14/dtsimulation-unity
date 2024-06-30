@@ -564,7 +564,7 @@ namespace DTSimulation.RandomSurface
                         dum2[i, j] = int.Parse(configStack.Pop());
                     }
 
-                    simplex_point[i] = new Simplex(dum, D, pointer_number);
+                    simplex_point[i] = new Simplex(dum, DPLUS, pointer_number);
                     simplex_number++;
                     pointer_number++;
                 }
@@ -1101,7 +1101,7 @@ namespace DTSimulation.RandomSurface
                 for (int j = sub + 1; j < DPLUSPLUS; j++)
                     c[j - 1] = a[j];
 
-                q[i] = new Simplex(c, D, pointer_number);
+                q[i] = new Simplex(c, DPLUS, pointer_number);
                 simplex_point[pointer_number] = q[i];
 
                 simplex_number++;
