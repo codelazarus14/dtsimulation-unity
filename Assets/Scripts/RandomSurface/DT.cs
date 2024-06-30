@@ -522,100 +522,97 @@ namespace DTSimulation.RandomSurface
 
         // TODO: remove or squash with GetNN and OrderedNeighbors
         // GetNN for nodes
-        public (int[], int) GetNodeNN(int label)
+        public (int[], int) NearestNeighbors(int nodeLabel)
         {
-            Simplex p = null;
+            Simplex simp = null;
 
-            for (int i = 0; i < pointer_number && p == null; i++)
+            for (int i = 0; i < pointer_number && simp == null; i++)
             {
                 if (simplex_point[i] == null) continue;
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    if (simplex_point[i].vertices[j] == label)
+                    if (simplex_point[i].vertices[j] == nodeLabel)
                     {
-                        p = simplex_point[i];
+                        simp = simplex_point[i];
                         break;
                     }
                 }
             }
 
-            if (p == null)
-                Debug.LogError($"couldn't find neighbors for node {label}");
+            if (simp == null)
+                Debug.LogError($"couldn't find neighbors for node {nodeLabel}");
 
-            int[] nn = new int[VOL], vcount = new int[1];
-            GetNN(p, label, nn, vcount);
-            return (nn, vcount[0]);
+            int[] neighbors = new int[VOL], nCount = new int[1];
+            NearestNeighbors(simp, nodeLabel, neighbors, nCount);
+            return (neighbors, nCount[0]);
         }
 
         // hardwired for D=2 right now ..
-        private void GetNN(Simplex p, int v, int[] nn, int[] vnum)
+        private void NearestNeighbors(Simplex simp, int node, int[] neighbors, int[] nCount)
         {
-            Simplex[] list = new Simplex[BIGVOL];
-            int[] dum = new int[DPLUS];
-            bool[] seen = new bool[VOL];
-            int[] num = new int[1];
+            Simplex[] simplices = new Simplex[BIGVOL];
+            int[] dummy = new int[DPLUS];
             int[] v1 = new int[VOL];
             int[] v2 = new int[VOL];
-            int k, currentpt, nextpt, working, index;
+            bool[] seen = new bool[VOL];
+            int k;
 
-            dum[0] = v;
-            int dummy = 1;
-            FindSimplices(p, dum, dummy, list, num);
-
-            for (int i = 0; i < VOL; i++)
-                seen[i] = false;
+            dummy[0] = node;
+            FindSimplices(simp, dummy, 1, simplices, nCount);
 
             k = 0;
-            for (int i = 0; i < num[0]; i++)
+            for (int i = 0; i < nCount[0]; i++)
             {
-                index = 0;
+                int index = 0;
 
                 for (int j = 0; j < DPLUS; j++)
                 {
                     // find center for neighbor search
-                    if (list[i].vertices[j] == v)
+                    if (simplices[i].vertices[j] == node)
+                    {
                         index = j;
+                        break;
+                    }
                 }
 
                 // find other two points on simplex
-                v1[k] = list[i].vertices[(index + 1) % DPLUS];
-                v2[k] = list[i].vertices[(index + 2) % DPLUS];
+                v1[k] = simplices[i].vertices[(index + 1) % DPLUS];
+                v2[k] = simplices[i].vertices[(index + 2) % DPLUS];
                 k++;
             }
 
-            nn[0] = v1[0];
+            // mark center node as seen
+            neighbors[0] = v1[0];
             seen[0] = true;
             k = 1;
 
             // look for v1[0] in rest of v1/v2 arrays
-            currentpt = v1[0];
+            int currNode = v1[0];
             do
             {
-                nextpt = 0;
-                for (int i = 0; i < num[0]; i++)
+                int nextNode = 0;
+                for (int i = 0; i < nCount[0]; i++)
                 {
                     if (!seen[i])
                     {
-                        if (v1[i] == currentpt)
+                        if (v1[i] == currNode)
                         {
-                            nn[k] = v2[i];
-                            nextpt = v2[i];
-                            k++;
+                            neighbors[k] = v2[i];
+                            nextNode = v2[i];
                             seen[i] = true;
+                            k++;
                         }
-                        if (v2[i] == currentpt)
+                        if (v2[i] == currNode)
                         {
-                            nn[k] = v1[i];
-                            nextpt = v1[i];
-                            k++;
+                            neighbors[k] = v1[i];
+                            nextNode = v1[i];
                             seen[i] = true;
+                            k++;
                         }
                     }
                 }
-                currentpt = nextpt;
-            } while (k < num[0]);
-
-            vnum[0] = num[0];
+                currNode = nextNode;
+            } while (k < nCount[0]);
 
             return;
         }

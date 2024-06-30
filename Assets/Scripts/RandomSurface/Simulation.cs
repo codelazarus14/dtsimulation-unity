@@ -53,7 +53,7 @@ namespace DTSimulation.RandomSurface
 
                 averagePos += node2Pos;
 
-                (int[] neighbors, int nCount) = MyDT.GetNodeNN(i);
+                (int[] neighbors, int nCount) = MyDT.NearestNeighbors(i);
 
                 for (int j = 0; j < nCount; j++)
                 {
