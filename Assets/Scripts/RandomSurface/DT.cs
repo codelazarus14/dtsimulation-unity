@@ -21,9 +21,9 @@ namespace DTSimulation.RandomSurface
 
         public float Beta = 3f;
 
-        private const int D = 2;
-        private const int DPLUS = D + 1;
-        private const int DPLUSPLUS = D + 2;
+        public const int D = 2;
+        public const int DPLUS = D + 1;
+        public const int DPLUSPLUS = D + 2;
 
         private const int BIGVOL = 4 * VOL;
         private const int MAXVOL = VOL + 30;
