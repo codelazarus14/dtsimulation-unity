@@ -10,7 +10,7 @@ namespace DTSimulation.RandomSurface
         public DT MyDT { get; private set; }
 
         [SerializeField]
-        private TextAsset config;
+        private DTConfig config;
         // speed in msec
         [SerializeField]
         [Range(50f, 500f)]
@@ -35,7 +35,7 @@ namespace DTSimulation.RandomSurface
 
         void Start()
         {
-            MyDT = new DT(config.text);
+            MyDT = new DT(config);
             StartCoroutine(Run());
         }
 

@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
     <ui:Label tabindex="-1" text="DT Random Surface Simulation" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Title" style="-unity-font-style: bold;" />
-    <uie:ObjectField label="Config" name="Config" binding-path="config" type="UnityEngine.TextAsset, UnityEngine.CoreModule" />
+    <uie:ObjectField label="Config" name="Config" binding-path="config" type="DTSimulation.RandomSurface.DTConfig, Assembly-CSharp" />
     <ui:Slider label="Time Step (ms)" high-value="500" name="Timestep" binding-path="timeStep" low-value="50" show-input-field="true" />
     <ui:SliderInt label="BETA*10" high-value="1000" name="Beta" binding-path="beta" show-input-field="true" />
     <ui:Slider label="Scale" high-value="10" name="Scale" binding-path="scale" low-value="1" show-input-field="true" />

@@ -290,7 +290,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92f7d2f9285d8d147b2406d4ea6d5015, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  config: {fileID: 4900000, guid: 3bab2a4250138e740a67b6c7d6b7e786, type: 3}
+  config: {fileID: 11400000, guid: 466f22c771903f440875b0d19e9fe18f, type: 2}
   timeStep: 100
   beta: 100
   scale: 5

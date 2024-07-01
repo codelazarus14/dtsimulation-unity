@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -45,19 +44,14 @@ namespace DTSimulation.RandomSurface
         //
         public Vector3[] NodePositions { get; private set; }
 
-        private string configText;
-
-        public DT(string config)
+        public DT(DTConfig cfg)
         {
             // TODO: make thermalize a coroutine and set value back up to 500, sweeps to 20000
-            configText = config;
+            LoadConfig(cfg);
         }
 
         public void Thermalize()
         {
-            simplex_point = new Simplex[BIGVOL];
-            ReadFile();
-
             /* thermalise and output info on run */
 
             Header();
@@ -421,103 +415,56 @@ namespace DTSimulation.RandomSurface
             return true;
         }
 
-        private void ReadFile()
+        private void LoadConfig(DTConfig config)
         {
-            // TODO: store state in some kind of struct that can be serialized/inspected
-            // the temp field, for example, is literally just throwing away some of the Scanner-esque outputs
-            // bc those fields are only edited at runtime, not loaded in
-            // basically this is all based on a fragile text-based structure that has to be 1-1 with the whitespaced config file
-            // when using a structured JSON type thing would save a lot of headaches and look better
+            simplex_point = new Simplex[BIGVOL];
+            simplex_number = config.simplexCount;
+            node_number = config.nodeCount;
 
-            // load config
-            string[] configLines = configText.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
-            // using a string stack to imitate use of the Scanner in the java version
-            Stack<string> configStack = new Stack<string>();
-            for (int i = configLines.Length - 1; i >= 0; i--)
-                configStack.Push(configLines[i]);
+            int[,] neighborBuffer = new int[simplex_number, DPLUS];
+            int[] vertexBuffer = new int[DPLUS];
 
-            // read config values
-            try
+            // set up simplices
+            for (int i = 0; i < simplex_number; i++)
             {
-                int simplexCount = int.Parse(configStack.Pop());
-                int[,] neighborBuffer = new int[simplexCount, DPLUS];
-                int[] vertexBuffer = new int[DPLUS];
-
-                node_number = int.Parse(configStack.Pop());
-                int stackCount = int.Parse(configStack.Pop());
-                // TODO: why do these exist + debug cleanup
-                float.Parse(configStack.Pop());
-                float.Parse(configStack.Pop());
-                float.Parse(configStack.Pop());
-
-                Debug.Log($"{simplexCount}, {node_number}, {stackCount}");
-
-                simplex_number = 0;
-                pointer_number = 0;
-
-                Debug.Log("Reading in existing configuration");
-
-                Debug.Log($"Configuration has volume: {simplexCount}");
-                Debug.Log($"Node number: {node_number}");
-                Debug.Log($"curvaturesq coupling: {Beta}");
-
-                for (int i = 0; i < stackCount; i++)
+                for (int j = 0; j < DPLUS; j++)
                 {
-                    // ignore stack labels for now
-                    int.Parse(configStack.Pop());
-                    //// add used vertex labels to stack
-                    //dummy = int.Parse(configStack.Pop());
-                    //Push(dummy);
+                    vertexBuffer[j] = config.vertices[i * DPLUS + j];
+                    neighborBuffer[i, j] = config.neighbors[i * DPLUS + j];
                 }
 
-                // set up simplices
-                for (int i = 0; i < simplexCount; i++)
-                {
-                    for (int j = 0; j < DPLUS; j++)
-                    {
-                        vertexBuffer[j] = int.Parse(configStack.Pop());
-                        neighborBuffer[i, j] = int.Parse(configStack.Pop());
-                    }
-
-                    simplex_point[i] = new Simplex(vertexBuffer, DPLUS, pointer_number);
-                    simplex_number++;
-                    pointer_number++;
-                }
-
-                // set neighbors
-                for (int i = 0; i < simplexCount; i++)
-                {
-                    for (int j = 0; j < DPLUS; j++)
-                    {
-                        simplex_point[i].neighbors[j] = simplex_point[neighborBuffer[i, j]];
-                    }
-                }
-
-                // give nodes random positions
-                NodePositions = new Vector3[node_number];
-                for (int i = 0; i < node_number; i++)
-                {
-                    NodePositions[i] = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f));
-                }
-
-                // print out results
-                string message = "";
-                for (int i = 0; i < simplexCount; i++)
-                {
-                    for (int j = 0; j < DPLUS; j++)
-                    {
-                        message += simplex_point[i].vertices[j] + "\t" + simplex_point[i].neighbors[j].label + "\t";
-                    }
-                    message += "\n";
-                }
-                Debug.Log(message);
-
-                Debug.Log("Have read data successfully");
+                simplex_point[i] = new Simplex(vertexBuffer, DPLUS, pointer_number++);
             }
-            catch (FormatException e)
+
+            // set neighbors
+            for (int i = 0; i < simplex_number; i++)
             {
-                Debug.LogError($"Error parsing config file! {e.Message}");
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    simplex_point[i].neighbors[j] = simplex_point[neighborBuffer[i, j]];
+                }
             }
+
+            // give nodes random positions
+            NodePositions = new Vector3[node_number];
+            for (int i = 0; i < node_number; i++)
+            {
+                NodePositions[i] = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+            }
+
+            // print out results
+            string message = "";
+            for (int i = 0; i < simplex_number; i++)
+            {
+                for (int j = 0; j < DPLUS; j++)
+                {
+                    message += simplex_point[i].vertices[j] + "\t" + simplex_point[i].neighbors[j].label + "\t";
+                }
+                message += "\n";
+            }
+            Debug.Log(message);
+
+            Debug.Log("Have read data successfully");
         }
 
         // TODO: remove or squash with GetNN and OrderedNeighbors
