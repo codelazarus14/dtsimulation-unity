@@ -152,7 +152,7 @@ namespace DTSimulation.RandomSurface
         /* thus n combinations possible selected according to count */
         /* count is the index 'left out' in getting n-1 from n */
         /* vertex left out of final vector b[] is returned in b[n-1] */
-        private void Combo(int[] a, int[] b, int n, int count)
+        private void Combo(int[] a, ref int[] b, int n, int count)
         {
             int add = 0;
             for (int i = 0; i < n; i++)
@@ -164,7 +164,6 @@ namespace DTSimulation.RandomSurface
                 }
                 else b[n - 1] = a[i];
             }
-            return;
         }
 
         /* routine takes a named subsimplex a[0]...a[n-1] and searches for it */
@@ -776,7 +775,7 @@ namespace DTSimulation.RandomSurface
 
         /* selects a simplex at random by accessing an array of pointers */
         /* once has a simplex select subsimplex/move at random */
-        private Simplex SelectSimplex(ref int sub)
+        private Simplex SelectSimplex(out int sub)
         {
             Simplex temp;
 
@@ -837,14 +836,12 @@ namespace DTSimulation.RandomSurface
         /* driver for triangulation updates */
         public void TrialChange()
         {
-            int subsimplex = D;
-
             Simplex[] addresses = new Simplex[DPLUSPLUS];
             int[] labels = new int[DPLUSPLUS];
             bool legal_move, good_manifold, metro_accept;
 
             // grab triangle and move type at random
-            Simplex p = SelectSimplex(ref subsimplex);
+            Simplex p = SelectSimplex(out int subsimplex);
 
             // check if move is legal i.e coordination of simplex =D+1-subsimplex
             legal_move = GoodSubsimplex(p, subsimplex, labels, addresses);
@@ -875,7 +872,7 @@ namespace DTSimulation.RandomSurface
 
             for (int i = 0; i < sub + 1; i++)
             {
-                Combo(a, c, sub + 1, i);
+                Combo(a, ref c, sub + 1, i);
 
                 for (int j = sub + 1; j < DPLUSPLUS; j++)
                     c[j - 1] = a[j];
