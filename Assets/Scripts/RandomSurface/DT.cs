@@ -112,7 +112,7 @@ namespace DTSimulation.RandomSurface
                     /* find simplices which also in common with this subsimplex */
                     /* and neighbour to simplex array1[i] */
 
-                    CommonSimplex(remaining[i], commonVerts, D - sub, common);
+                    CommonSimplices(remaining[i], commonVerts, D - sub, ref common);
 
                     /* check to see whether any of these have been seen before */
                     /* if not then add to array2 and flag seen. Also make note in examine */
@@ -153,57 +153,39 @@ namespace DTSimulation.RandomSurface
         /* returns a vector containing the local indices of pointers to */
         /* neighbouring simplices */
         /* which share a face also encompassing this subsimplex */
-        private void CommonSimplex(Simplex p, int[] a, int n, Simplex[] face)
+        private void CommonSimplices(Simplex p, int[] a, int n, ref Simplex[] face)
         {
-            int j = 0;
-            int[] b = new int[DPLUS];
+            const int NOTFOUND = -1;
+            int[] commonIndices = new int[n];
             bool[] mask = new bool[DPLUS];
-            bool[] found = new bool[DPLUS];
 
             for (int i = 0; i < n; i++)
-                found[i] = false;
+                commonIndices[i] = NOTFOUND;
 
             /* find positions/local indices of subsimplex in this simplex */
 
             for (int i = 0; i < n; i++)
             {
-                for (j = 0; j < DPLUS; j++)
+                for (int j = 0; j < DPLUS && commonIndices[i] == NOTFOUND; j++)
                 {
                     if (p.vertices[j] == a[i])
-                    {
-                        b[i] = j;
-                        found[i] = true;
-                        break;
-                    }
+                        commonIndices[i] = j;
                 }
-            }
 
-            for (int i = 0; i < n; i++)
-            {
-                if (!found[i])
+                if (commonIndices[i] == NOTFOUND)
                 {
                     Debug.LogError("Error in CommonSimplex");
-                    Application.Quit(); // replacement for System.exit(1);
+                    return;
                 }
+                mask[commonIndices[i]] = true;
             }
 
-            for (j = 0; j < DPLUS; j++)
-                mask[j] = false;
-
-            for (j = 0; j < n; j++)
-                mask[b[j]] = true;
-
-            j = 0;
+            int commonIdx = 0;
             for (int i = 0; i < DPLUS; i++)
             {
                 if (!mask[i])
-                {
-                    face[j] = p.neighbors[i];
-                    j++;
-                }
+                    face[commonIdx++] = p.neighbors[i];
             }
-
-            return;
         }
 
         /* routine takes pointer to simplex and a vertex and returns local */
@@ -243,7 +225,7 @@ namespace DTSimulation.RandomSurface
 
                 for (int i = 0; i < num1; i++)
                 {
-                    CommonSimplex(array1[i], a, sub, near);
+                    CommonSimplices(array1[i], a, sub, ref near);
 
                     for (int j = 0; j < DPLUS - sub; j++)
                     {

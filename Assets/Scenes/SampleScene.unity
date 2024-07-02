@@ -293,7 +293,7 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: 466f22c771903f440875b0d19e9fe18f, type: 2}
   timeStep: 100
   beta: 100
-  scale: 5
+  scale: 4
   nodeSize: 0.1
   trialChange: 1
   drawAveragePos: 0
