@@ -848,15 +848,14 @@ namespace DTSimulation.RandomSurface
         /* thus n combinations possible selected according to count */
         /* count is the index 'left out' in getting n-1 from n */
         /* vertex left out of final vector b[] is returned in b[n-1] */
-        private void Combo(int[] a, ref int[] b, int n, int count)
+        private void Combo(int[] a, ref int[] b, int n, int leaveOut)
         {
-            int add = 0;
+            int currIdx = 0;
             for (int i = 0; i < n; i++)
             {
-                if (count != i)
+                if (leaveOut != i)
                 {
-                    b[add] = a[i];
-                    add++;
+                    b[currIdx++] = a[i];
                 }
                 else b[n - 1] = a[i];
             }
