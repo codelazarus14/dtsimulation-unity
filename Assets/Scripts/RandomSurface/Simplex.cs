@@ -18,7 +18,8 @@ namespace DTSimulation.RandomSurface
         public int[] vertices;
         public int sum;
         public int label;
-        public bool flag;
+        // flag for marking visited simplex while traversing
+        public bool seen;
 
         public Simplex(int[] a, int N, int pointer_number)
         {
@@ -34,7 +35,7 @@ namespace DTSimulation.RandomSurface
             }
 
             label = pointer_number;
-            flag = false;
+            seen = false;
         }
     }
 }
