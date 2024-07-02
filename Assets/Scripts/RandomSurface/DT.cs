@@ -66,16 +66,15 @@ namespace DTSimulation.RandomSurface
             }
         }
 
-        private bool AllowedMove(Simplex p, int sub, int[] a)
+        private bool AllowedMove(Simplex p, int sub, int[] verts)
         {
-            Simplex[] examine = new Simplex[VOL];
-            Simplex[] array1 = new Simplex[VOL];
-            Simplex[] array2 = new Simplex[VOL];
-            Simplex[] dum = new Simplex[DPLUS];
-            int[] b = new int[DPLUS];
-
-            int j, number1, number2, search;
-
+            Simplex[] examined = new Simplex[VOL];
+            Simplex[] remaining = new Simplex[VOL];
+            Simplex[] newNeighbors = new Simplex[VOL];
+            Simplex[] common = new Simplex[DPLUS];
+            int[] commonVerts = new int[DPLUS];
+            int numRemaining = 1;
+            int numExamined = 1;
             bool good = true;
 
             /* need to teminate when either 1. see opposing vertex a[DPLUS] in some */
@@ -83,44 +82,29 @@ namespace DTSimulation.RandomSurface
             /* vertices derived from original simplex */
             /* so need to flag simplices that have been examined */
 
-            if (sub == D)
-                return good;
-            if (sub == 0)
-                return good;
+            if (sub == D || sub == 0) return true;
 
-            j = 0;
-            for (int i = 0; i < DPLUS; i++)
-            {
-                if (i > sub)
-                {
-                    b[j] = a[i];
-                    j++;
-                }
-            }
+            for (int i = sub + 1; i < DPLUS; i++)
+                commonVerts[i - (sub + 1)] = verts[i];
 
-            array1[0] = p;
-            number1 = 1;
-            examine[0] = p;
-            search = 1;
+            examined[0] = p;
+            remaining[0] = p;
             p.flag = true;
 
             /* loop while new neighbour simplices to examine */
 
-            while (number1 > 0)
+            while (numRemaining > 0)
             {
-                number2 = 0;
+                int newNeighborCount = 0;
 
-                for (int i = 0; i < number1; i++)
+                for (int i = 0; i < numRemaining; i++)
                 {
                     /* examine to see if contains 'opposing vertex */
 
-                    for (j = 0; j < DPLUS; j++)
+                    for (int j = 0; j < DPLUS && good; j++)
                     {
-                        if (array1[i].vertices[j] == a[DPLUS])
-                        {
+                        if (remaining[i].vertices[j] == verts[DPLUS])
                             good = false;
-                            break;
-                        }
                     }
 
                     if (!good) break;
@@ -128,31 +112,29 @@ namespace DTSimulation.RandomSurface
                     /* find simplices which also in common with this subsimplex */
                     /* and neighbour to simplex array1[i] */
 
-                    CommonSimplex(array1[i], b, D - sub, dum);
+                    CommonSimplex(remaining[i], commonVerts, D - sub, common);
 
                     /* check to see whether any of these have been seen before */
                     /* if not then add to array2 and flag seen. Also make note in examine */
 
-                    for (j = 0; j < sub + 1; j++)
+                    for (int j = 0; j < sub + 1; j++)
                     {
-                        if (!dum[j].flag)
+                        if (!common[j].flag)
                         {
-                            array2[number2] = dum[j];
-                            number2++;
-                            dum[j].flag = true;
+                            newNeighbors[newNeighborCount++] = common[j];
+                            common[j].flag = true;
 
-                            examine[search] = dum[j];
-                            search++;
+                            examined[numExamined++] = common[j];
                         }
                     }
                 }
 
                 if (!good) break;
 
-                for (int i = 0; i < number2; i++)
-                    array1[i] = array2[i];
+                for (int i = 0; i < newNeighborCount; i++)
+                    remaining[i] = newNeighbors[i];
 
-                number1 = number2;
+                numRemaining = newNeighborCount;
             }
 
             /* depending on value of good we have either found the opposing vertex or */
@@ -160,8 +142,8 @@ namespace DTSimulation.RandomSurface
 
             /* first set all local flags back to zero */
 
-            for (int i = 0; i < search; i++)
-                examine[i].flag = false;
+            for (int i = 0; i < numExamined; i++)
+                examined[i].flag = false;
 
             return good;
         }
@@ -471,31 +453,31 @@ namespace DTSimulation.RandomSurface
         // GetNN for nodes
         public (int[], int) NearestNeighbors(int nodeLabel)
         {
-            Simplex simp = null;
+            Simplex p = null;
 
-            for (int i = 0; i < pointer_number && simp == null; i++)
+            for (int i = 0; i < pointer_number && p == null; i++)
             {
                 if (simplex_point[i] == null) continue;
                 for (int j = 0; j < DPLUS; j++)
                 {
                     if (simplex_point[i].vertices[j] == nodeLabel)
                     {
-                        simp = simplex_point[i];
+                        p = simplex_point[i];
                         break;
                     }
                 }
             }
 
-            if (simp == null)
+            if (p == null)
                 Debug.LogError($"couldn't find neighbors for node {nodeLabel}");
 
             int[] neighbors = new int[VOL], nCount = new int[1];
-            NearestNeighbors(simp, nodeLabel, neighbors, nCount);
+            NearestNeighbors(p, nodeLabel, neighbors, nCount);
             return (neighbors, nCount[0]);
         }
 
         // hardwired for D=2 right now ..
-        private void NearestNeighbors(Simplex simp, int node, int[] neighbors, int[] nCount)
+        private void NearestNeighbors(Simplex p, int node, int[] neighbors, int[] nCount)
         {
             Simplex[] simplices = new Simplex[BIGVOL];
             int[] dummy = new int[DPLUS];
@@ -505,7 +487,7 @@ namespace DTSimulation.RandomSurface
             int k;
 
             dummy[0] = node;
-            FindSimplices(simp, dummy, 1, simplices, nCount);
+            FindSimplices(p, dummy, 1, simplices, nCount);
 
             k = 0;
             for (int i = 0; i < nCount[0]; i++)
@@ -857,21 +839,20 @@ namespace DTSimulation.RandomSurface
         {
             int subsimplex = D;
 
-            Simplex simp;
             Simplex[] addresses = new Simplex[DPLUSPLUS];
             int[] labels = new int[DPLUSPLUS];
             bool legal_move, good_manifold, metro_accept;
 
             // grab triangle and move type at random
-            simp = SelectSimplex(ref subsimplex);
+            Simplex p = SelectSimplex(ref subsimplex);
 
             // check if move is legal i.e coordination of simplex =D+1-subsimplex
-            legal_move = GoodSubsimplex(simp, subsimplex, labels, addresses);
+            legal_move = GoodSubsimplex(p, subsimplex, labels, addresses);
 
             if (!legal_move) return;
 
             // make sure move will not create degeneracies
-            good_manifold = AllowedMove(simp, subsimplex, labels);
+            good_manifold = AllowedMove(p, subsimplex, labels);
 
             if (!good_manifold) return;
 
@@ -1018,13 +999,13 @@ namespace DTSimulation.RandomSurface
             return curv;
         }
 
-        private (Simplex[] simplices, int[] nodes) GetOrderedNeighbors(Simplex s, int center)
+        private (Simplex[] simplices, int[] nodes) GetOrderedNeighbors(Simplex p, int center)
         {
             List<Simplex> simplices = new List<Simplex>();
             List<int> nodes = new List<int>();
 
             // simplex currently being evaluated
-            Simplex currSimplex = s;
+            Simplex currSimplex = p;
             // used with FindSimplices to pick one of D simplices sharing a link
             Simplex[] nearSimplices = new Simplex[D];
             int[] nCount = new int[1];
@@ -1058,7 +1039,7 @@ namespace DTSimulation.RandomSurface
                 // add new neighbor to lists
                 nodes.Add(link[1]);
                 simplices.Add(currSimplex);
-            } while (currSimplex != s);
+            } while (currSimplex != p);
 
             return (simplices.ToArray(), nodes.ToArray());
         }
