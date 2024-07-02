@@ -148,24 +148,6 @@ namespace DTSimulation.RandomSurface
             return good;
         }
 
-        /* routine takes n element vector a[] and returns n-1 element in b[] */
-        /* thus n combinations possible selected according to count */
-        /* count is the index 'left out' in getting n-1 from n */
-        /* vertex left out of final vector b[] is returned in b[n-1] */
-        private void Combo(int[] a, ref int[] b, int n, int count)
-        {
-            int add = 0;
-            for (int i = 0; i < n; i++)
-            {
-                if (count != i)
-                {
-                    b[add] = a[i];
-                    add++;
-                }
-                else b[n - 1] = a[i];
-            }
-        }
-
         /* routine takes a named subsimplex a[0]...a[n-1] and searches for it */
         /* in a simplex pointed at by p. */
         /* returns a vector containing the local indices of pointers to */
@@ -860,6 +842,24 @@ namespace DTSimulation.RandomSurface
 
             // if accept update triangulation
             DT_Update(labels, addresses, subsimplex);
+        }
+
+        /* routine takes n element vector a[] and returns n-1 element in b[] */
+        /* thus n combinations possible selected according to count */
+        /* count is the index 'left out' in getting n-1 from n */
+        /* vertex left out of final vector b[] is returned in b[n-1] */
+        private void Combo(int[] a, ref int[] b, int n, int count)
+        {
+            int add = 0;
+            for (int i = 0; i < n; i++)
+            {
+                if (count != i)
+                {
+                    b[add] = a[i];
+                    add++;
+                }
+                else b[n - 1] = a[i];
+            }
         }
 
         /* coordinates addition of new simplices and removal of old ones */
