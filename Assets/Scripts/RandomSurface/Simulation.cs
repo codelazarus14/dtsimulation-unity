@@ -102,6 +102,7 @@ namespace DTSimulation.RandomSurface
                 Gizmos.color = Color.white;
             }
         }
+        // TODO: add routine to manually shove everything back towards origin - avg pos (recenter) every N sweeps
 
         private IEnumerator Run()
         {

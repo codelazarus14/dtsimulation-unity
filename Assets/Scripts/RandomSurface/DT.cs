@@ -250,80 +250,29 @@ namespace DTSimulation.RandomSurface
         /* other d-i 'external' vertices of original simplex occupy end of a[] */
         /* also returns pointers to these d+1-i simplices */
         /* and opposing vertex is placed at end of a[] */
-        private bool GoodSubsimplex(Simplex p, int sub, int[] a, Simplex[] isimplex)
+        private bool GoodSubsimplex(Simplex p, int sub, ref int[] a, ref Simplex[] addresses)
         {
-            int add, temp, opposing;
-            bool seen_already;
+            int opposing;
             int[] aind = new int[DPLUS];
 
-            /* test whether subsimplex is simplex itself i.e node insertion move */
+            /* generate subsimplex at random placing its indices in aind */
 
-            if (sub == D)
-            {
-                for (int i = 0; i < DPLUS; i++)
-                    a[i] = p.vertices[i];
+            int[] randIndices = new int[DPLUS];
 
-                a[DPLUS] = node_number;
-
-                isimplex[DPLUS] = p;
-                return true;
-            }
-
-            /* otherwise generate subsimplex at random placing its indices in aind */
-
-            add = 0;
-            while (add < sub + 1)
-            {
-                temp = Random.Range(0, DPLUS);
-                /* generate random index */
-
-                /* scan existing ones to see if already produced */
-
-                seen_already = false;
-                for (int i = 0; i < add; i++)
-                {
-                    if (temp == aind[i])
-                    {
-                        seen_already = true;
-                        break;
-                    }
-                }
-
-                if (!seen_already)
-                {
-                    aind[add] = temp;
-                    add++;
-                }
-            }
-
-            /* now create array of indices to d-i remaining vertices */
-
-            temp = add;
             for (int i = 0; i < DPLUS; i++)
-            {
-                seen_already = false;
-                for (add = 0; add < sub + 1; add++)
-                {
-                    if (i == aind[add])
-                    {
-                        seen_already = true;
-                        break;
-                    }
-                }
+                randIndices[i] = i;
 
-                if (!seen_already)
-                {
-                    aind[temp] = i;
-                    temp++;
-                }
+            // shuffle to get random indices
+            int currIdx = DPLUS;
+            while (currIdx > 1)
+            {
+                int k = Random.Range(0, currIdx--);
+                (randIndices[k], randIndices[currIdx]) = (randIndices[currIdx], randIndices[k]);
             }
 
-            if (temp != DPLUS)
-            {
-                Debug.LogError("Error in GoodSubsimplex");
-                Application.Quit(); // replacement for System.exit(1);
-            }
-
+            // copy random indices into aind
+            for (int i = 0; i < DPLUS; i++)
+                aind[i] = randIndices[i];
 
             /* now loop over all possible faces constucted to include this subsimplex */
             /* by selecting d-i-1 out of the d-i remaining indices */
@@ -331,8 +280,8 @@ namespace DTSimulation.RandomSurface
             for (int i = 0; i < DPLUS; i++)
                 a[i] = p.vertices[aind[i]];
 
-            isimplex[sub + 1] = p.neighbors[aind[sub + 1]];
-            opposing = isimplex[sub + 1].sum - SumFace(p, a[sub + 1]);
+            addresses[sub + 1] = p.neighbors[aind[sub + 1]];
+            opposing = addresses[sub + 1].sum - SumFace(p, a[sub + 1]);
 
             /* protect following loop if sub=D-1 */
 
@@ -340,14 +289,14 @@ namespace DTSimulation.RandomSurface
             {
                 for (int i = sub + 2; i < DPLUS; i++)
                 {
-                    isimplex[i] = p.neighbors[aind[i]];
-                    if (isimplex[i].sum - SumFace(p, a[i]) != opposing)
+                    addresses[i] = p.neighbors[aind[i]];
+                    if (addresses[i].sum - SumFace(p, a[i]) != opposing)
                         return false;
                 }
             }
 
             a[DPLUS] = opposing;
-            isimplex[DPLUS] = p;
+            addresses[DPLUS] = p;
             return true;
         }
 
@@ -797,7 +746,7 @@ namespace DTSimulation.RandomSurface
             Simplex p = SelectSimplex(out int subsimplex);
 
             // check if move is legal i.e coordination of simplex =D+1-subsimplex
-            legal_move = GoodSubsimplex(p, subsimplex, labels, addresses);
+            legal_move = GoodSubsimplex(p, subsimplex, ref labels, ref addresses);
 
             if (!legal_move) return;
 
