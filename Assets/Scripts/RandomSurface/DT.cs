@@ -626,10 +626,10 @@ namespace DTSimulation.RandomSurface
         /* routine returns sum of vertices around the face conjugate to node i */
         private int SumFace(Simplex p, int i)
         {
-            int add = 0;
+            int vertexSum = 0;
             for (int j = 0; j < DPLUS; j++)
-                if (p.vertices[j] != i) add += p.vertices[j];
-            return add;
+                if (p.vertices[j] != i) vertexSum += p.vertices[j];
+            return vertexSum;
         }
 
         /* every sweep clean up pointer array */
