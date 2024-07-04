@@ -665,25 +665,25 @@ namespace DTSimulation.RandomSurface
         {
             Simplex[] addresses = new Simplex[DPLUSPLUS];
             int[] labels = new int[DPLUSPLUS];
-            bool legal_move, good_manifold, metro_accept;
+            bool isLegal, isGoodManifold, metroAccepts;
 
             // grab triangle and move type at random
             Simplex p = SelectSimplex(out int subsimplex);
 
             // check if move is legal i.e coordination of simplex =D+1-subsimplex
-            legal_move = GoodSubsimplex(p, subsimplex, ref labels, ref addresses);
+            isLegal = GoodSubsimplex(p, subsimplex, ref labels, ref addresses);
 
-            if (!legal_move) return;
+            if (!isLegal) return;
 
             // make sure move will not create degeneracies
-            good_manifold = AllowedMove(p, subsimplex, labels);
+            isGoodManifold = AllowedMove(p, subsimplex, labels);
 
-            if (!good_manifold) return;
+            if (!isGoodManifold) return;
 
             // check change in action
-            metro_accept = Metropolis(subsimplex, labels, addresses);
+            metroAccepts = Metropolis(subsimplex, labels, addresses);
 
-            if (!metro_accept) return;
+            if (!metroAccepts) return;
 
             // if accept update triangulation
             DT_Update(labels, addresses, subsimplex);
