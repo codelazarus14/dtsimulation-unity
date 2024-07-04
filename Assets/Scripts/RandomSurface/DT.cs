@@ -441,10 +441,10 @@ namespace DTSimulation.RandomSurface
         {
             string header = "----------HEADER----------\n";
 
-            header += "Dimension: " + D + "\n";
-            header += "Volume: " + VOL + "\n";
-            header += "Bulk coupling: " + Beta + "\n";
-            header += "Thermalization time: " + THERMALISE + "\n";
+            header += $"Dimension: {D}\n";
+            header += $"Volume: {VOL}\n";
+            header += $"Bulk coupling: {Beta}\n";
+            header += $"Thermalization time: {THERMALISE}\n";
 
             Debug.Log(header);
         }
