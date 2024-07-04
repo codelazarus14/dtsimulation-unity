@@ -564,10 +564,8 @@ namespace DTSimulation.RandomSurface
         }
 
         /* routine handles reconnection of new simplex pointers */
-        private void Reconnect(int[] a, Simplex[] q, int sub)
+        private void Reconnect(int[] a, ref Simplex[] simplices, int sub)
         {
-            int index_face1, index_face2, index_face3, opp;
-
             /* loop over final state simplices */
 
             for (int i = 0; i < sub + 1; i++)
@@ -578,8 +576,8 @@ namespace DTSimulation.RandomSurface
                 {
                     if (j != i)
                     {
-                        index_face1 = FindFace(q[i], a[j]);
-                        q[i].neighbors[index_face1] = q[j];
+                        int face1Index = FindFace(simplices[i], a[j]);
+                        simplices[i].neighbors[face1Index] = simplices[j];
                     }
                 }
 
@@ -587,22 +585,21 @@ namespace DTSimulation.RandomSurface
 
                 for (int j = sub + 1; j < DPLUSPLUS; j++)
                 {
-                    index_face1 = FindFace(q[i], a[j]);
-                    index_face2 = FindFace(q[j], a[i]);
+                    int face1Index = FindFace(simplices[i], a[j]);
+                    int face2Index = FindFace(simplices[j], a[i]);
 
                     /* have found external simplices involved reconnect outward pointers */
 
-                    q[i].neighbors[index_face1] = q[j].neighbors[index_face2];
+                    simplices[i].neighbors[face1Index] = simplices[j].neighbors[face2Index];
 
                     /* just adjust pointers on external simplices so they point at new ones */
 
-                    opp = q[i].neighbors[index_face1].sum - SumFace(q[i], q[i].vertices[index_face1]);
+                    int opposing = simplices[i].neighbors[face1Index].sum - SumFace(simplices[i], simplices[i].vertices[face1Index]);
 
-                    index_face3 = FindFace(q[i].neighbors[index_face1], opp);
-                    q[i].neighbors[index_face1].neighbors[index_face3] = q[i];
+                    int face3Index = FindFace(simplices[i].neighbors[face1Index], opposing);
+                    simplices[i].neighbors[face1Index].neighbors[face3Index] = simplices[i];
                 }
             }
-            return;
         }
 
         /* selects a simplex at random by accessing an array of pointers */
@@ -735,7 +732,7 @@ namespace DTSimulation.RandomSurface
 
             /* now reconnect pointers appropriately */
 
-            Reconnect(a, q, sub);
+            Reconnect(a, ref q, sub);
 
             /*  old guys */
 
