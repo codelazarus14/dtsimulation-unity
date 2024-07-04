@@ -686,7 +686,7 @@ namespace DTSimulation.RandomSurface
             if (!metroAccepts) return;
 
             // if accept update triangulation
-            DT_Update(labels, addresses, subsimplex);
+            Update(labels, ref addresses, subsimplex);
         }
 
         /* routine takes n element vector a[] and returns n-1 element in b[] */
@@ -707,40 +707,36 @@ namespace DTSimulation.RandomSurface
         }
 
         /* coordinates addition of new simplices and removal of old ones */
-        private void DT_Update(int[] a, Simplex[] q, int sub)
+        private void Update(int[] a, ref Simplex[] newSimplices, int sub)
         {
-            int[] c = new int[DPLUSPLUS];
-            int[] temp = new int[DPLUS];
+            int[] newVerts = new int[DPLUSPLUS];
 
             /* loop over new simplices */
 
             for (int i = 0; i < sub + 1; i++)
             {
-                Combo(a, ref c, sub + 1, i);
+                Combo(a, ref newVerts, sub + 1, i);
 
                 for (int j = sub + 1; j < DPLUSPLUS; j++)
-                    c[j - 1] = a[j];
+                    newVerts[j - 1] = a[j];
 
-                q[i] = new Simplex(c, DPLUS, pointer_number);
-                simplex_point[pointer_number] = q[i];
+                newSimplices[i] = new Simplex(newVerts, DPLUS, pointer_number);
+                simplex_point[pointer_number++] = newSimplices[i];
 
                 simplex_number++;
-                pointer_number++;
             }
 
             /* now reconnect pointers appropriately */
 
-            Reconnect(a, ref q, sub);
+            Reconnect(a, ref newSimplices, sub);
 
             /*  old guys */
 
             for (int i = sub + 1; i < DPLUSPLUS; i++)
             {
-                simplex_point[q[i].label] = null;
+                simplex_point[newSimplices[i].label] = null;
                 simplex_number--;
             }
-
-            return;
         }
 
         public void WobbleVertex()

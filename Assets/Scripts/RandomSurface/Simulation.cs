@@ -35,7 +35,6 @@ namespace DTSimulation.RandomSurface
 
         void Start()
         {
-            MyDT = new DT(config);
             StartCoroutine(Run());
         }
 
@@ -106,6 +105,7 @@ namespace DTSimulation.RandomSurface
 
         private IEnumerator Run()
         {
+            MyDT = new DT(config);
             MyDT.Thermalize();
             MyDT.RelabelNodes();
             while (true)
