@@ -3,6 +3,7 @@
     <uie:ObjectField label="Config" name="Config" binding-path="config" type="DTSimulation.RandomSurface.DTConfig, Assembly-CSharp" />
     <ui:Slider label="Time Step (ms)" high-value="500" name="Timestep" binding-path="timeStep" low-value="50" show-input-field="true" />
     <ui:SliderInt label="BETA*10" high-value="1000" name="Beta" binding-path="beta" show-input-field="true" />
+    <ui:Slider label="Wobble Magnitude" high-value="0.5" name="WobbleMagnitude" binding-path="wobbleMagnitude" show-input-field="true" />
     <ui:Slider label="Scale" high-value="10" name="Scale" binding-path="scale" low-value="1" show-input-field="true" />
     <ui:Slider label="Node Size" high-value="1" name="NodeSize" binding-path="nodeSize" low-value="0.01" show-input-field="true" />
     <ui:Toggle label="Trial Change" name="TrialChange" binding-path="trialChange" />

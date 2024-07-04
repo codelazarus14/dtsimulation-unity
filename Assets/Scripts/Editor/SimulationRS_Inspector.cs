@@ -10,13 +10,16 @@ namespace DTSimulation.RandomSurface
         public VisualTreeAsset inspectorXML;
 
         private SerializedProperty betaProperty;
+        private SerializedProperty wobbleProperty;
 
         public override VisualElement CreateInspectorGUI()
         {
             VisualElement inspector = inspectorXML.Instantiate();
 
             betaProperty = serializedObject.FindProperty("beta");
+            wobbleProperty = serializedObject.FindProperty("wobbleMagnitude");
             inspector.TrackPropertyValue(betaProperty, OnBetaPropertyChanged);
+            inspector.TrackPropertyValue(wobbleProperty, OnWobblePropertyChanged);
 
             return inspector;
         }
@@ -27,6 +30,13 @@ namespace DTSimulation.RandomSurface
             DT myDT = (target as Simulation).MyDT;
             if (myDT != null)
                 myDT.Beta = property.intValue * 0.1f;
+        }
+
+        private void OnWobblePropertyChanged(SerializedProperty property)
+        {
+            DT myDT = (target as Simulation).MyDT;
+            if (myDT != null)
+                myDT.WobbleMagnitude = property.floatValue;
         }
     }
 }

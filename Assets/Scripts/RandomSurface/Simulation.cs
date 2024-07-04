@@ -19,6 +19,8 @@ namespace DTSimulation.RandomSurface
         [Range(0, 100)]
         private int beta = 30;
         [SerializeField]
+        private float wobbleMagnitude = 0.1f;
+        [SerializeField]
         [Range(1f, 10f)]
         private float scale = 5f;
         [SerializeField]

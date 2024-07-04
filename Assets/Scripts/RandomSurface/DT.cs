@@ -19,6 +19,7 @@ namespace DTSimulation.RandomSurface
         public const int VOL = DISKVOL + MARKEDQ;
 
         public float Beta = 3f;
+        public float WobbleMagnitude = 0.1f;
 
         public const int D = 2;
         public const int DPLUS = D + 1;
@@ -524,13 +525,18 @@ namespace DTSimulation.RandomSurface
             {
                 Simplex p = addresses[i / 2 + 2];   // addresses[2/3]
                 int origin = labels[i % 2];         // labels[i/j]
-                // get neighbor of origin index within each simplex - outer simplices
-                Simplex n = p.neighbors[FindFace(p, origin)];
-                // get label of the outer simplex vertex not included in the sum (opposite the link)
-                result[i] = n.sum - SumFace(p, origin);
+                result[i] = GetOuterNodeNeighbor(p, origin);
             }
 
             return result;
+        }
+
+        private int GetOuterNodeNeighbor(Simplex p, int origin)
+        {
+            // get neighbor of origin index within simplex -> outer simplex
+            Simplex outer = p.neighbors[FindFace(p, origin)];
+            // get label of the outer simplex vertex not included in the sum (opposite the face)
+            return outer.sum - SumFace(p, origin);
         }
 
         private bool Metropolis(int _, int[] a, Simplex[] addresses)
@@ -741,9 +747,6 @@ namespace DTSimulation.RandomSurface
 
         public void WobbleVertex()
         {
-            // size of wobble
-            const float magnitude = 0.1f;
-
             Simplex randSimplex;
             do
             {
@@ -757,30 +760,22 @@ namespace DTSimulation.RandomSurface
 
             // create new pos with random wobble
             Vector3 wobble = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)).normalized;
-            Vector3 newPos = pos + wobble * magnitude;
+            Vector3 newPos = pos + wobble * WobbleMagnitude;
 
             // find neighbor verts + outer verts of simplices bordering inner group of triangles
             (Simplex[] nSimplices, int[] nNodes) = GetOrderedNeighbors(randSimplex, randNode);
 
             int[] outerNeighbors = new int[nNodes.Length];
 
-            // TODO: duplicated from GetOuterSimplexNeighbors
             for (int i = 0; i < outerNeighbors.Length; i++)
-            {
-                Simplex p = nSimplices[i];
-                Simplex n = p.neighbors[FindFace(p, randNode)];
-                // get label of the vertex not included in the sum (opposite the link)
-                outerNeighbors[i] = n.sum - SumFace(p, randNode);
-            }
+                outerNeighbors[i] = GetOuterNodeNeighbor(nSimplices[i], randNode);
 
             // compute difference in energy
             float deltaE = DS_WobbleLinks(pos, newPos, nNodes) + DS_WobbleCurvature(pos, newPos, nNodes, outerNeighbors);
 
             // update position with wobble if accepted
             if (MetropolisTest(deltaE))
-            {
                 NodePositions[randNode] = newPos;
-            }
         }
 
         private float DS_WobbleLinks(Vector3 before, Vector3 after, int[] neighbors)
