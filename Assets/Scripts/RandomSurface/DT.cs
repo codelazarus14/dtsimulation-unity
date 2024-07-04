@@ -636,7 +636,7 @@ namespace DTSimulation.RandomSurface
         public void Tidy()
         {
             Simplex[] temp = new Simplex[BIGVOL];
-            int add = 0;
+            int newSimplexCount = 0;
 
             /* run down array compressing non NULL extries into new array */
             /* and reassigning simplex labels according to their new index in this */
@@ -646,20 +646,18 @@ namespace DTSimulation.RandomSurface
             {
                 if (simplex_point[i] != null)
                 {
-                    temp[add] = simplex_point[i];
-                    temp[add].label = add;
-                    add++;
+                    temp[newSimplexCount] = simplex_point[i];
+                    temp[newSimplexCount].label = newSimplexCount;
+                    newSimplexCount++;
                 }
             }
 
-            for (int i = 0; i < add; i++)
+            for (int i = 0; i < newSimplexCount; i++)
                 simplex_point[i] = temp[i];
 
-            pointer_number = add;
+            pointer_number = newSimplexCount;
             if (pointer_number != simplex_number)
                 Debug.Log("oops - pointer number is not equal to simplex_number in tidy()");
-
-            return;
         }
 
         /* driver for triangulation updates */
