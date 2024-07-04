@@ -8,18 +8,11 @@ namespace DTSimulation.RandomSurface
     {
         // all comments using /**/ are from DT.java
 
-        // TODO: fix style/naming conventions
-        // TODO: fix messy/redundant loops and reduce work
-        // TODO: remove unused, add cached values, make LOGICS and ints = 0 or 1 become bools (usually "int done"), remove int[1]'s (ref)
-
         /* some global constants for run */
 
         private const int DISKVOL = 472;
         private const int MARKEDQ = 282; //FRAC*(DISKVOL+2)/(2.0-FRAC)
         public const int VOL = DISKVOL + MARKEDQ;
-
-        public float Beta = 3f;
-        public float WobbleMagnitude = 0.1f;
 
         public const int D = 2;
         public const int DPLUS = D + 1;
@@ -29,15 +22,18 @@ namespace DTSimulation.RandomSurface
 
         private const int THERMALISE = 1;
 
+        public float Beta = 3f;
+        public float WobbleMagnitude = 0.1f;
+
         /* simple global pointers and counters */
 
-        public int node_number = 0;
-        public int pointer_number = 0;
-        private int simplex_number = 0;
+        public int NodeCount = 0;
+        public int SimplexMaxIndex = 0;
+        private int simplexCount = 0;
 
         /* data structures */
 
-        public Simplex[] simplex_point;
+        public Simplex[] Simplices;
 
         //
         // my fields/deviations from above
@@ -303,15 +299,15 @@ namespace DTSimulation.RandomSurface
 
         private void LoadConfig(DTConfig config)
         {
-            simplex_point = new Simplex[BIGVOL];
-            simplex_number = config.simplexCount;
-            node_number = config.nodeCount;
+            Simplices = new Simplex[BIGVOL];
+            simplexCount = config.simplexCount;
+            NodeCount = config.nodeCount;
 
-            int[,] neighborBuffer = new int[simplex_number, DPLUS];
+            int[,] neighborBuffer = new int[simplexCount, DPLUS];
             int[] vertexBuffer = new int[DPLUS];
 
             // set up simplices
-            for (int i = 0; i < simplex_number; i++)
+            for (int i = 0; i < simplexCount; i++)
             {
                 for (int j = 0; j < DPLUS; j++)
                 {
@@ -319,32 +315,32 @@ namespace DTSimulation.RandomSurface
                     neighborBuffer[i, j] = config.neighbors[i * DPLUS + j];
                 }
 
-                simplex_point[i] = new Simplex(vertexBuffer, DPLUS, pointer_number++);
+                Simplices[i] = new Simplex(vertexBuffer, DPLUS, SimplexMaxIndex++);
             }
 
             // set neighbors
-            for (int i = 0; i < simplex_number; i++)
+            for (int i = 0; i < simplexCount; i++)
             {
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    simplex_point[i].neighbors[j] = simplex_point[neighborBuffer[i, j]];
+                    Simplices[i].neighbors[j] = Simplices[neighborBuffer[i, j]];
                 }
             }
 
             // give nodes random positions
-            NodePositions = new Vector3[node_number];
-            for (int i = 0; i < node_number; i++)
+            NodePositions = new Vector3[NodeCount];
+            for (int i = 0; i < NodeCount; i++)
             {
                 NodePositions[i] = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f));
             }
 
             // print out results
             string message = "";
-            for (int i = 0; i < simplex_number; i++)
+            for (int i = 0; i < simplexCount; i++)
             {
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    message += simplex_point[i].vertices[j] + "\t" + simplex_point[i].neighbors[j].label + "\t";
+                    message += Simplices[i].vertices[j] + "\t" + Simplices[i].neighbors[j].label + "\t";
                 }
                 message += "\n";
             }
@@ -359,14 +355,14 @@ namespace DTSimulation.RandomSurface
             Simplex p = null;
 
             // find a simplex which contains the node
-            for (int i = 0; i < pointer_number && p == null; i++)
+            for (int i = 0; i < SimplexMaxIndex && p == null; i++)
             {
-                if (simplex_point[i] == null) continue;
+                if (Simplices[i] == null) continue;
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    if (simplex_point[i].vertices[j] == nodeLabel)
+                    if (Simplices[i].vertices[j] == nodeLabel)
                     {
-                        p = simplex_point[i];
+                        p = Simplices[i];
                         break;
                     }
                 }
@@ -390,11 +386,11 @@ namespace DTSimulation.RandomSurface
             bool[] seen = new bool[VOL];
             int[] dum = new int[DPLUS];
 
-            for (int i = 0; i < simplex_number; i++)
+            for (int i = 0; i < simplexCount; i++)
             {
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    oldLabel = simplex_point[i].vertices[j];
+                    oldLabel = Simplices[i].vertices[j];
 
                     // skip marked node and any already-updated labels
                     if (oldLabel == 0 || oldLabel > VERYBIG) continue;
@@ -403,7 +399,7 @@ namespace DTSimulation.RandomSurface
                     {
                         // loop over all simplices that share this node
                         dum[0] = oldLabel;
-                        FindSimplices(simplex_point[i], dum, 1, ref nearSimplices, out int nCount);
+                        FindSimplices(Simplices[i], dum, 1, ref nearSimplices, out int nCount);
 
                         for (int k = 0; k < nCount; k++)
                         {
@@ -421,18 +417,18 @@ namespace DTSimulation.RandomSurface
             }
 
             // reset labels, resulting nodes labeled 0-node_number
-            for (int i = 0; i < simplex_number; i++)
+            for (int i = 0; i < simplexCount; i++)
             {
                 int finalSum = 0;
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    int finalLabel = simplex_point[i].vertices[j];
+                    int finalLabel = Simplices[i].vertices[j];
                     finalLabel = finalLabel % VERYBIG;
-                    simplex_point[i].vertices[j] = finalLabel;
+                    Simplices[i].vertices[j] = finalLabel;
                     finalSum += finalLabel;
                 }
                 // update simplex with sum of new labels
-                simplex_point[i].sum = finalSum;
+                Simplices[i].sum = finalSum;
             }
         }
 
@@ -616,8 +612,8 @@ namespace DTSimulation.RandomSurface
 
             do
             {
-                int i = Random.Range(0, pointer_number);
-                temp = simplex_point[i];
+                int i = Random.Range(0, SimplexMaxIndex);
+                temp = Simplices[i];
             } while (temp == null);
 
             /* initially just grow with node insertion moves */
@@ -648,21 +644,21 @@ namespace DTSimulation.RandomSurface
             /* and reassigning simplex labels according to their new index in this */
             /* array. Finally copy back */
 
-            for (int i = 0; i < pointer_number; i++)
+            for (int i = 0; i < SimplexMaxIndex; i++)
             {
-                if (simplex_point[i] != null)
+                if (Simplices[i] != null)
                 {
-                    temp[newSimplexCount] = simplex_point[i];
+                    temp[newSimplexCount] = Simplices[i];
                     temp[newSimplexCount].label = newSimplexCount;
                     newSimplexCount++;
                 }
             }
 
             for (int i = 0; i < newSimplexCount; i++)
-                simplex_point[i] = temp[i];
+                Simplices[i] = temp[i];
 
-            pointer_number = newSimplexCount;
-            if (pointer_number != simplex_number)
+            SimplexMaxIndex = newSimplexCount;
+            if (SimplexMaxIndex != simplexCount)
                 Debug.Log("oops - pointer number is not equal to simplex_number in tidy()");
         }
 
@@ -726,10 +722,10 @@ namespace DTSimulation.RandomSurface
                 for (int j = sub + 1; j < DPLUSPLUS; j++)
                     newVerts[j - 1] = a[j];
 
-                newSimplices[i] = new Simplex(newVerts, DPLUS, pointer_number);
-                simplex_point[pointer_number++] = newSimplices[i];
+                newSimplices[i] = new Simplex(newVerts, DPLUS, SimplexMaxIndex);
+                Simplices[SimplexMaxIndex++] = newSimplices[i];
 
-                simplex_number++;
+                simplexCount++;
             }
 
             /* now reconnect pointers appropriately */
@@ -740,8 +736,8 @@ namespace DTSimulation.RandomSurface
 
             for (int i = sub + 1; i < DPLUSPLUS; i++)
             {
-                simplex_point[newSimplices[i].label] = null;
-                simplex_number--;
+                Simplices[newSimplices[i].label] = null;
+                simplexCount--;
             }
         }
 
@@ -750,8 +746,8 @@ namespace DTSimulation.RandomSurface
             Simplex randSimplex;
             do
             {
-                int i = Random.Range(0, pointer_number);
-                randSimplex = simplex_point[i];
+                int i = Random.Range(0, SimplexMaxIndex);
+                randSimplex = Simplices[i];
             } while (randSimplex == null);
 
             int randNode = randSimplex.vertices[Random.Range(0, DPLUS)];

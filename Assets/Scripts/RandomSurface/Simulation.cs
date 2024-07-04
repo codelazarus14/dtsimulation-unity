@@ -46,7 +46,7 @@ namespace DTSimulation.RandomSurface
 
             Vector3 averagePos = Vector3.zero;
 
-            for (int i = 0; i < MyDT.node_number; i++)
+            for (int i = 0; i < MyDT.NodeCount; i++)
             {
                 Vector3 node2Pos = scale * MyDT.NodePositions[i];
                 Gizmos.color = Color.red;
@@ -68,9 +68,9 @@ namespace DTSimulation.RandomSurface
             // draw normals
             if (drawNormals)
             {
-                for (int i = 0; i < MyDT.pointer_number; i++)
+                for (int i = 0; i < MyDT.SimplexMaxIndex; i++)
                 {
-                    Simplex p = MyDT.simplex_point[i];
+                    Simplex p = MyDT.Simplices[i];
                     if (p == null) continue;
 
                     // compute normal from verts
@@ -94,7 +94,7 @@ namespace DTSimulation.RandomSurface
                 }
             }
 
-            averagePos /= MyDT.node_number;
+            averagePos /= MyDT.NodeCount;
 
             if (drawAveragePos)
             {
