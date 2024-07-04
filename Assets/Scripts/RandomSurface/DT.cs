@@ -451,6 +451,7 @@ namespace DTSimulation.RandomSurface
 
         private float DS(Vector3[] vPosns)
         {
+            // return change in energy between the two links (before and after flip)
             float kl = (vPosns[3] - vPosns[2]).sqrMagnitude;
             float ij = (vPosns[1] - vPosns[0]).sqrMagnitude;
 
@@ -459,16 +460,8 @@ namespace DTSimulation.RandomSurface
 
         private float DS_Curvature(Vector3[] posns, Vector3[] vPosns)
         {
-
             // calculate normals (counterclockwise)
-            // for labels [i, j, k, l] = indices [0, 3]
-            //  v2 --- k ---- v1
-            //   \   / | \   /
-            //    \ /  |  \ / 
-            //     i --|-- j
-            //    / \  |  / \
-            //   /   \ | /   \
-            //  v4 --- l --- v3
+            // see GetOuterSimplexNeighbors for diagram
 
             // before link flip
             // n1 = ij X ik
@@ -510,8 +503,16 @@ namespace DTSimulation.RandomSurface
         private int[] GetOuterSimplexNeighbors(int[] labels, Simplex[] addresses)
         {
             // hardcoded for 2D 
-            // two triangles (2,3) and list of the four vertices (i/j shared)
-            // find simplex from findface(2/3, i/j) - 4 total
+            // labels is a list of the four vertices (i/j shared), addresses has two triangles (a[2],a[3])
+
+            // for labels [i, j, k, l] = indices [0, 3]
+            //  v2 --- k ---- v1
+            //   \   / | \   /
+            //    \ /  |  \ / 
+            //     i --|-- j
+            //    / \  |  / \
+            //   /   \ | /   \
+            //  v4 --- l --- v3
 
             // link[1, 2] --> v1
             // link[0, 2] --> v2
@@ -522,35 +523,34 @@ namespace DTSimulation.RandomSurface
             for (int i = 0; i < 4; i++)
             {
                 Simplex p = addresses[i / 2 + 2];   // addresses[2/3]
-                int center = labels[i % 2];         // labels[i/j]
-                Simplex n = p.neighbors[FindFace(p, center)];
-                // get label of the vertex not included in the sum (opposite the link)
-                result[i] = n.sum - SumFace(p, center);
+                int origin = labels[i % 2];         // labels[i/j]
+                // get neighbor of origin index within each simplex - outer simplices
+                Simplex n = p.neighbors[FindFace(p, origin)];
+                // get label of the outer simplex vertex not included in the sum (opposite the link)
+                result[i] = n.sum - SumFace(p, origin);
             }
 
             return result;
         }
 
-        private bool Metropolis(int subsimplex, int[] a, Simplex[] addresses)
+        private bool Metropolis(int _, int[] a, Simplex[] addresses)
         {
-            // TODO: un-fix the volume
-
-            //////// link flip ///////////////
+            //////// link flip ///////////////     only when sub = 1
 
             // get node positions
             Vector3[] posns = new Vector3[a.Length];
 
             int[] outerNeighbors = GetOuterSimplexNeighbors(a, addresses);
-            Vector3[] oPosns = new Vector3[outerNeighbors.Length];
+            Vector3[] outerPosns = new Vector3[outerNeighbors.Length];
 
             for (int i = 0; i < a.Length; i++)
             {
                 posns[i] = NodePositions[a[i]];
-                oPosns[i] = NodePositions[outerNeighbors[i]];
+                outerPosns[i] = NodePositions[outerNeighbors[i]];
             }
 
             // deltaE = link flip change + change in curvature
-            float dsd = DS(posns) + DS_Curvature(posns, oPosns);
+            float dsd = DS(posns) + DS_Curvature(posns, outerPosns);
 
             return MetropolisTest(dsd);
         }
