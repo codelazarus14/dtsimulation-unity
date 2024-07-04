@@ -357,6 +357,7 @@ namespace DTSimulation.RandomSurface
         {
             Simplex p = null;
 
+            // find a simplex which contains the node
             for (int i = 0; i < pointer_number && p == null; i++)
             {
                 if (simplex_point[i] == null) continue;
@@ -380,57 +381,57 @@ namespace DTSimulation.RandomSurface
 
         public void RelabelNodes()
         {
+            // number larger than any node label
             const int VERYBIG = 100000;
-            int new2, old;
+            int newLabel = VERYBIG + 1, oldLabel;
 
-            bool[] not_seen = new bool[VOL];
-            Simplex[] list = new Simplex[VOL];
+            Simplex[] nearSimplices = new Simplex[VOL];
+            bool[] seen = new bool[VOL];
             int[] dum = new int[DPLUS];
-
-            for (int i = 0; i < VOL; i++)
-                not_seen[i] = true;
-
-            new2 = VERYBIG + 1;
 
             for (int i = 0; i < simplex_number; i++)
             {
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    old = simplex_point[i].vertices[j];
+                    oldLabel = simplex_point[i].vertices[j];
 
-                    if (old == 0 || old > VERYBIG) continue;
-                    if (not_seen[old])
+                    // skip marked node and any already-updated labels
+                    if (oldLabel == 0 || oldLabel > VERYBIG) continue;
+
+                    if (!seen[oldLabel])
                     {
-                        dum[0] = old;
-                        int dummy = 1;
-                        FindSimplices(simplex_point[i], dum, dummy, ref list, out int num);
-                        for (int k = 0; k < num; k++)
+                        // loop over all simplices that share this node
+                        dum[0] = oldLabel;
+                        FindSimplices(simplex_point[i], dum, 1, ref nearSimplices, out int nCount);
+
+                        for (int k = 0; k < nCount; k++)
                         {
                             for (int l = 0; l < DPLUS; l++)
                             {
-                                if (list[k].vertices[l] == old)
-                                    list[k].vertices[l] = new2;
+                                // update vertices with new label
+                                if (nearSimplices[k].vertices[l] == oldLabel)
+                                    nearSimplices[k].vertices[l] = newLabel;
                             }
                         }
-                        not_seen[old] = false;
-                        new2++;
+                        seen[oldLabel] = true;
+                        newLabel++;
                     }
                 }
             }
 
-            // reset labels
-            int a, add;
+            // reset labels, resulting nodes labeled 0-node_number
             for (int i = 0; i < simplex_number; i++)
             {
-                add = 0;
+                int finalSum = 0;
                 for (int j = 0; j < DPLUS; j++)
                 {
-                    a = simplex_point[i].vertices[j];
-                    a = a % VERYBIG;
-                    simplex_point[i].vertices[j] = a;
-                    add += a;
+                    int finalLabel = simplex_point[i].vertices[j];
+                    finalLabel = finalLabel % VERYBIG;
+                    simplex_point[i].vertices[j] = finalLabel;
+                    finalSum += finalLabel;
                 }
-                simplex_point[i].sum = add;
+                // update simplex with sum of new labels
+                simplex_point[i].sum = finalSum;
             }
         }
 
