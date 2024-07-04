@@ -352,9 +352,8 @@ namespace DTSimulation.RandomSurface
             Debug.Log("Have read data successfully");
         }
 
-        // TODO: remove or squash with GetNN and OrderedNeighbors
         // GetNN for nodes
-        public (int[], int) NearestNeighbors(int nodeLabel)
+        public int[] NearestNeighbors(int nodeLabel)
         {
             Simplex p = null;
 
@@ -374,79 +373,9 @@ namespace DTSimulation.RandomSurface
             if (p == null)
                 Debug.LogError($"couldn't find neighbors for node {nodeLabel}");
 
-            int[] neighbors = new int[VOL];
-            NearestNeighbors(p, nodeLabel, neighbors, out int nCount);
-            return (neighbors, nCount);
-        }
+            (_, int[] neighbors) = GetOrderedNeighbors(p, nodeLabel);
 
-        // hardwired for D=2 right now ..
-        private void NearestNeighbors(Simplex p, int node, int[] neighbors, out int nCount)
-        {
-            Simplex[] simplices = new Simplex[BIGVOL];
-            int[] dummy = new int[DPLUS];
-            int[] v1 = new int[VOL];
-            int[] v2 = new int[VOL];
-            bool[] seen = new bool[VOL];
-            int k;
-
-            dummy[0] = node;
-            FindSimplices(p, dummy, 1, ref simplices, out nCount);
-
-            k = 0;
-            for (int i = 0; i < nCount; i++)
-            {
-                int index = 0;
-
-                for (int j = 0; j < DPLUS; j++)
-                {
-                    // find center for neighbor search
-                    if (simplices[i].vertices[j] == node)
-                    {
-                        index = j;
-                        break;
-                    }
-                }
-
-                // find other two points on simplex
-                v1[k] = simplices[i].vertices[(index + 1) % DPLUS];
-                v2[k] = simplices[i].vertices[(index + 2) % DPLUS];
-                k++;
-            }
-
-            // mark center node as seen
-            neighbors[0] = v1[0];
-            seen[0] = true;
-            k = 1;
-
-            // look for v1[0] in rest of v1/v2 arrays
-            int currNode = v1[0];
-            do
-            {
-                int nextNode = 0;
-                for (int i = 0; i < nCount; i++)
-                {
-                    if (!seen[i])
-                    {
-                        if (v1[i] == currNode)
-                        {
-                            neighbors[k] = v2[i];
-                            nextNode = v2[i];
-                            seen[i] = true;
-                            k++;
-                        }
-                        if (v2[i] == currNode)
-                        {
-                            neighbors[k] = v1[i];
-                            nextNode = v1[i];
-                            seen[i] = true;
-                            k++;
-                        }
-                    }
-                }
-                currNode = nextNode;
-            } while (k < nCount);
-
-            return;
+            return neighbors;
         }
 
         public void RelabelNodes()

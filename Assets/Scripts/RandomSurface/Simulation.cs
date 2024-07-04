@@ -53,9 +53,9 @@ namespace DTSimulation.RandomSurface
 
                 averagePos += node2Pos;
 
-                (int[] neighbors, int nCount) = MyDT.NearestNeighbors(i);
+                int[] neighbors = MyDT.NearestNeighbors(i);
 
-                for (int j = 0; j < nCount; j++)
+                for (int j = 0; j < neighbors.Length; j++)
                 {
                     int neighbor = neighbors[j];
                     Vector3 node1Pos = scale * MyDT.NodePositions[neighbor];
